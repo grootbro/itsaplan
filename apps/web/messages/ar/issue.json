@@ -117,6 +117,9 @@
     "submit": "إنشاء مهمة",
     "template": "قالب",
     "applyTemplate": "تطبيق قالب…",
+    "replaceDraftTitle": "استبدال نص المسودة؟",
+    "replaceDraftDescription": "سيستبدل القالب «{name}» نص العنوان أو الوصف الحالي بمحتواه. لن تغيّر حقول القالب الفارغة مسودتك.",
+    "confirmApplyTemplate": "تطبيق القالب",
     "noTemplates": "لا توجد قوالب."
   },
   "attachments": {

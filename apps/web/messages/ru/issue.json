@@ -117,6 +117,9 @@
     "submit": "Создать задачу",
     "template": "Шаблон",
     "applyTemplate": "Применить шаблон…",
+    "replaceDraftTitle": "Заменить текст черновика?",
+    "replaceDraftDescription": "Шаблон «{name}» заменит введённый заголовок или описание своим текстом. Пустые поля шаблона не изменят черновик.",
+    "confirmApplyTemplate": "Применить шаблон",
     "noTemplates": "Шаблонов нет."
   },
   "attachments": {

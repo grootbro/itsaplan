@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useSession } from '@/lib/auth-client';
 import { useCreateIssue, useSetFieldValue, useUpdateIssue } from '@/services/issues.service';
 import { fieldDefsForType } from '../../utils/fieldDefs';
+import { templateTextChanges } from '../../utils/issueTemplateText';
 import { useFileDragZone } from '../../hooks/useFileDragZone';
 import { useFilePaste } from '../../hooks/useFilePaste';
 import { useNewIssueAttachments } from '../../hooks/useNewIssueAttachments';
@@ -126,9 +127,7 @@ export default function NewIssueModal({
     Object.fromEntries((defaults.fieldValues ?? []).map((f) => [f.fieldId, { value: f.userId }])),
   );
   const [justAddedId, setJustAddedId] = useState<number | null>(null);
-  // The template applied last, named on its pill, and how many times one has been
-  // applied. Every apply remounts the body: its editors read their markdown once,
-  // when they are created, so applying the same template twice has to remount too.
+  // Remount only when the description changes: editors read their markdown once.
   const [template, setTemplate] = useState<IssueTemplate | null>(null);
   const [applyCount, setApplyCount] = useState(0);
 
@@ -223,10 +222,13 @@ export default function NewIssueModal({
   // Fills the dialog in from a template. A property the template leaves unset
   // presets nothing, so what the dialog already holds stays.
   function applyTemplate(next: IssueTemplate) {
+    const text = templateTextChanges({ title, description }, next);
     setTemplate(next);
-    setApplyCount((n) => n + 1);
-    if (next.titleTemplate) setTitle(next.titleTemplate);
-    setDescription(next.descriptionTemplate);
+    if (text.title !== undefined) setTitle(text.title);
+    if (text.description !== undefined) {
+      setDescription(text.description);
+      setApplyCount((n) => n + 1);
+    }
     if (next.columnId != null) setColumnId(next.columnId);
     if (next.typeId != null) setTypeId(next.typeId);
     if (next.priority != null) setPriority(next.priority);
@@ -325,6 +327,8 @@ export default function NewIssueModal({
           <NewIssueTemplatePill
             templates={project.issueTemplates}
             applied={template}
+            title={title}
+            description={description}
             onApply={applyTemplate}
           />
         )

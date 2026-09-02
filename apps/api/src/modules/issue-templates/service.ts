@@ -1,7 +1,16 @@
-import { db, issueTemplate, issueTemplateLabel, issueType, label, projectColumn } from '@repo/db';
+import {
+  db,
+  issueTemplate,
+  issueTemplateLabel,
+  issueType,
+  label,
+  projectColumn,
+  projectMember,
+} from '@repo/db';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { HttpError } from '#shared/lib';
-import { getMembership } from '#modules/members/service';
+
+type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 // Data access for issue templates: the presets a new issue can be created from.
 // Every template belongs to a project, and each of its properties is optional —
@@ -38,10 +47,13 @@ function mapTemplate(row: typeof issueTemplate.$inferSelect, labelIds: number[])
 }
 
 // The labels of the given templates, grouped by template. Empty map for no ids.
-async function labelsByTemplate(templateIds: number[]): Promise<Map<number, number[]>> {
+async function labelsByTemplate(
+  templateIds: number[],
+  executor: typeof db | Transaction = db,
+): Promise<Map<number, number[]>> {
   const byTemplate = new Map<number, number[]>();
   if (templateIds.length === 0) return byTemplate;
-  const rows = await db
+  const rows = await executor
     .select()
     .from(issueTemplateLabel)
     .where(inArray(issueTemplateLabel.templateId, templateIds));
@@ -68,13 +80,16 @@ export async function listIssueTemplates(projectId: number): Promise<IssueTempla
 async function getIssueTemplateById(
   projectId: number,
   id: number,
+  tx: Transaction,
 ): Promise<IssueTemplateRow | null> {
-  const rows = await db
+  const rows = await tx
     .select()
     .from(issueTemplate)
-    .where(and(eq(issueTemplate.id, id), eq(issueTemplate.projectId, projectId)));
+    .where(and(eq(issueTemplate.id, id), eq(issueTemplate.projectId, projectId)))
+    // Serialize updates, including label-only patches, before reading presets.
+    .for('update');
   if (!rows[0]) return null;
-  const labels = await labelsByTemplate([id]);
+  const labels = await labelsByTemplate([id], tx);
   return mapTemplate(rows[0], labels.get(id) ?? []);
 }
 
@@ -93,28 +108,37 @@ export interface IssueTemplateInput {
 // Enforces that every property the template presets belongs to its project: the
 // foreign keys only require the row to exist somewhere. Only checks what the input
 // sets to a non-null value — clearing a property is always allowed.
-async function assertPresets(projectId: number, input: Partial<IssueTemplateInput>): Promise<void> {
+async function assertPresets(
+  tx: Transaction,
+  projectId: number,
+  input: Partial<IssueTemplateInput>,
+): Promise<void> {
   if (input.typeId != null) {
-    const rows = await db
+    const rows = await tx
       .select({ id: issueType.id })
       .from(issueType)
       .where(and(eq(issueType.id, input.typeId), eq(issueType.projectId, projectId)));
     if (rows.length === 0) throw new HttpError(400, 'Issue type must belong to this project');
   }
   if (input.columnId != null) {
-    const rows = await db
+    const rows = await tx
       .select({ id: projectColumn.id })
       .from(projectColumn)
       .where(and(eq(projectColumn.id, input.columnId), eq(projectColumn.projectId, projectId)));
     if (rows.length === 0) throw new HttpError(400, 'Column must belong to this project');
   }
   if (input.assigneeUserId) {
-    const role = await getMembership(projectId, input.assigneeUserId);
-    if (!role) throw new HttpError(400, 'Assignee must be a project member');
+    const rows = await tx
+      .select({ userId: projectMember.userId })
+      .from(projectMember)
+      .where(
+        and(eq(projectMember.projectId, projectId), eq(projectMember.userId, input.assigneeUserId)),
+      );
+    if (rows.length === 0) throw new HttpError(400, 'Assignee must be a project member');
   }
   const labelIds = [...new Set(input.labelIds ?? [])];
   if (labelIds.length > 0) {
-    const rows = await db
+    const rows = await tx
       .select({ id: label.id })
       .from(label)
       .where(and(eq(label.projectId, projectId), inArray(label.id, labelIds)));
@@ -124,11 +148,15 @@ async function assertPresets(projectId: number, input: Partial<IssueTemplateInpu
 }
 
 // Writes the label set a template should end up with.
-async function setTemplateLabels(templateId: number, labelIds: number[]): Promise<void> {
+async function setTemplateLabels(
+  tx: Transaction,
+  templateId: number,
+  labelIds: number[],
+): Promise<void> {
   const next = [...new Set(labelIds)];
-  await db.delete(issueTemplateLabel).where(eq(issueTemplateLabel.templateId, templateId));
+  await tx.delete(issueTemplateLabel).where(eq(issueTemplateLabel.templateId, templateId));
   if (next.length > 0) {
-    await db.insert(issueTemplateLabel).values(next.map((labelId) => ({ templateId, labelId })));
+    await tx.insert(issueTemplateLabel).values(next.map((labelId) => ({ templateId, labelId })));
   }
 }
 
@@ -136,23 +164,25 @@ export async function createIssueTemplate(
   projectId: number,
   input: IssueTemplateInput,
 ): Promise<IssueTemplateRow> {
-  await assertPresets(projectId, input);
-  const [row] = await db
-    .insert(issueTemplate)
-    .values({
-      projectId,
-      name: input.name,
-      description: input.description ?? '',
-      titleTemplate: input.titleTemplate ?? '',
-      descriptionTemplate: input.descriptionTemplate ?? '',
-      typeId: input.typeId ?? null,
-      columnId: input.columnId ?? null,
-      priority: input.priority ?? null,
-      assigneeUserId: input.assigneeUserId ?? null,
-    })
-    .returning({ id: issueTemplate.id });
-  if (input.labelIds?.length) await setTemplateLabels(row.id, input.labelIds);
-  return (await getIssueTemplateById(projectId, row.id))!;
+  return db.transaction(async (tx) => {
+    await assertPresets(tx, projectId, input);
+    const [row] = await tx
+      .insert(issueTemplate)
+      .values({
+        projectId,
+        name: input.name,
+        description: input.description ?? '',
+        titleTemplate: input.titleTemplate ?? '',
+        descriptionTemplate: input.descriptionTemplate ?? '',
+        typeId: input.typeId ?? null,
+        columnId: input.columnId ?? null,
+        priority: input.priority ?? null,
+        assigneeUserId: input.assigneeUserId ?? null,
+      })
+      .returning({ id: issueTemplate.id });
+    if (input.labelIds?.length) await setTemplateLabels(tx, row.id, input.labelIds);
+    return (await getIssueTemplateById(projectId, row.id, tx))!;
+  });
 }
 
 // Updates a template, scoped to its project. Returns null when the project holds no
@@ -162,25 +192,27 @@ export async function updateIssueTemplate(
   id: number,
   patch: Partial<IssueTemplateInput>,
 ): Promise<IssueTemplateRow | null> {
-  const current = await getIssueTemplateById(projectId, id);
-  if (!current) return null;
-  await assertPresets(projectId, patch);
-  await db
-    .update(issueTemplate)
-    .set({
-      name: patch.name ?? current.name,
-      description: patch.description ?? current.description,
-      titleTemplate: patch.titleTemplate ?? current.titleTemplate,
-      descriptionTemplate: patch.descriptionTemplate ?? current.descriptionTemplate,
-      typeId: patch.typeId === undefined ? current.typeId : patch.typeId,
-      columnId: patch.columnId === undefined ? current.columnId : patch.columnId,
-      priority: patch.priority === undefined ? current.priority : patch.priority,
-      assigneeUserId:
-        patch.assigneeUserId === undefined ? current.assigneeUserId : patch.assigneeUserId,
-    })
-    .where(and(eq(issueTemplate.id, id), eq(issueTemplate.projectId, projectId)));
-  if (patch.labelIds) await setTemplateLabels(id, patch.labelIds);
-  return getIssueTemplateById(projectId, id);
+  return db.transaction(async (tx) => {
+    const current = await getIssueTemplateById(projectId, id, tx);
+    if (!current) return null;
+    await assertPresets(tx, projectId, patch);
+    await tx
+      .update(issueTemplate)
+      .set({
+        name: patch.name ?? current.name,
+        description: patch.description ?? current.description,
+        titleTemplate: patch.titleTemplate ?? current.titleTemplate,
+        descriptionTemplate: patch.descriptionTemplate ?? current.descriptionTemplate,
+        typeId: patch.typeId === undefined ? current.typeId : patch.typeId,
+        columnId: patch.columnId === undefined ? current.columnId : patch.columnId,
+        priority: patch.priority === undefined ? current.priority : patch.priority,
+        assigneeUserId:
+          patch.assigneeUserId === undefined ? current.assigneeUserId : patch.assigneeUserId,
+      })
+      .where(and(eq(issueTemplate.id, id), eq(issueTemplate.projectId, projectId)));
+    if (patch.labelIds) await setTemplateLabels(tx, id, patch.labelIds);
+    return getIssueTemplateById(projectId, id, tx);
+  });
 }
 
 // Deletes a template, scoped to its project. Returns true when a row was removed.

@@ -117,6 +117,9 @@
     "submit": "Create issue",
     "template": "Template",
     "applyTemplate": "Apply template…",
+    "replaceDraftTitle": "Replace draft text?",
+    "replaceDraftDescription": "Applying “{name}” will replace existing title or description text with the template's content. Empty template fields leave your draft unchanged.",
+    "confirmApplyTemplate": "Apply template",
     "noTemplates": "No templates."
   },
   "attachments": {

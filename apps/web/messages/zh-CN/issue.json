@@ -117,6 +117,9 @@
     "submit": "新建工作项",
     "template": "模板",
     "applyTemplate": "套用模板…",
+    "replaceDraftTitle": "替换草稿文本？",
+    "replaceDraftDescription": "应用“{name}”将用模板内容替换现有的标题或描述。模板中的空字段不会更改草稿。",
+    "confirmApplyTemplate": "应用模板",
     "noTemplates": "没有模板。"
   },
   "attachments": {

@@ -5,6 +5,7 @@ import { HttpError } from '#shared/lib';
 import { authContext } from '#shared/auth-context';
 import { guards } from '#shared/guards';
 import { requireUser } from '#shared/access';
+import { hasPermission } from '#shared/permissions';
 import { isMcpRequest } from '#shared/mcp-request';
 import { accessErrors, commonErrors, errors } from '#shared/responses';
 import { getMemberContext, listAssigneeCandidates } from '#modules/members/service';
@@ -132,28 +133,22 @@ export const projectRoutes = new Elysia({ name: 'projects', detail: { tags: ['Pr
   .get(
     '/projects/:projectKey',
     async ({ project, user }) => {
-      const [
-        columns,
-        issueTypes,
-        labels,
-        labelGroups,
-        assignees,
-        customFields,
-        issueTemplates,
-        viewer,
-      ] = await Promise.all([
-        listColumns(project.id),
-        listIssueTypes(project.id),
-        listLabels(project.id),
-        listLabelGroups(project.id),
-        listAssigneeCandidates(project.id),
-        listCustomFields(project.id, { allTypes: true }),
-        listIssueTemplates(project.id),
-        getMemberContext(project.id, requireUser(user).id),
-      ]);
+      const [columns, issueTypes, labels, labelGroups, assignees, customFields, viewer] =
+        await Promise.all([
+          listColumns(project.id),
+          listIssueTypes(project.id),
+          listLabels(project.id),
+          listLabelGroups(project.id),
+          listAssigneeCandidates(project.id),
+          listCustomFields(project.id, { allTypes: true }),
+          getMemberContext(project.id, requireUser(user).id),
+        ]);
       // The permission guard already asserted membership, so a context always
       // exists here; guard against a race (membership revoked mid-request).
       if (!viewer) throw new HttpError(403, 'You do not have access to this project');
+      const issueTemplates = hasPermission(viewer.permissions, 'issue_templates', 'read')
+        ? await listIssueTemplates(project.id)
+        : [];
       return {
         project,
         columns,

@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach } from 'bun:test';
 import { authedApi, type Api } from '#tests/helpers/app';
 import { signUpTestUser } from '#tests/helpers/auth';
 import { resetDb } from '#tests/helpers/db';
+import { db } from '@repo/db';
+import { sql } from 'drizzle-orm';
 
 // Issue templates are the presets a new issue can be created from. They belong to
 // a project, and every property they preset is optional. Routes live under
@@ -36,12 +38,42 @@ async function listTemplates(client: Api, projectKey = 'MKT') {
   return (await templates(client, projectKey).get()).data!;
 }
 
+// Fail the label write after API validation, without mocking the database. NOT
+// VALID leaves existing labels intact, so an update must roll back its DELETE too.
+async function withFailingLabelWrite(run: () => Promise<void>): Promise<void> {
+  await db.execute(sql`
+    ALTER TABLE issue_template_label
+    ADD CONSTRAINT test_reject_template_labels CHECK (false) NOT VALID
+  `);
+  try {
+    await run();
+  } finally {
+    await db.execute(sql`
+      ALTER TABLE issue_template_label DROP CONSTRAINT test_reject_template_labels
+    `);
+  }
+}
+
 describe('issue-templates', () => {
   beforeEach(async () => {
     await resetDb();
   });
 
   describe('create', () => {
+    it('rolls back the template when saving its labels fails and allows a retry', async () => {
+      const { asOwner, labelId } = await setupProject();
+      const input = { name: 'Bug report', labelIds: [labelId] };
+
+      await withFailingLabelWrite(async () => {
+        expect((await templates(asOwner).post(input)).status).toBe(500);
+        expect(await listTemplates(asOwner)).toEqual([]);
+      });
+
+      const retry = await templates(asOwner).post(input);
+      expect(retry.status).toBe(201);
+      expect(retry.data).toMatchObject(input);
+    });
+
     it('creates a template with only a name and presets nothing', async () => {
       const { asOwner } = await setupProject();
 
@@ -126,6 +158,49 @@ describe('issue-templates', () => {
   });
 
   describe('read', () => {
+    it('hides templates in the scaffold when the member cannot read them', async () => {
+      const { asOwner } = await setupProject();
+      const input = { name: 'Internal', descriptionTemplate: 'Restricted template content' };
+      await templates(asOwner).post(input);
+      const member = await signUpTestUser();
+      const invite = await asOwner.projects({ projectKey: 'MKT' }).invites.post({
+        email: member.email,
+        role: 'member',
+      });
+      const asMember = authedApi(member.cookie);
+      expect((await asMember.invites({ token: invite.data!.token }).accept.post()).status).toBe(
+        200,
+      );
+      const role = await asOwner.projects({ projectKey: 'MKT' }).roles.post({
+        name: 'No templates',
+        permissions: { work_items: { read: true, create: true } },
+      });
+      expect(
+        (
+          await asOwner.projects({ projectKey: 'MKT' }).members({ userId: member.userId }).patch({
+            role: 'member',
+            roleId: role.data!.id,
+          })
+        ).status,
+      ).toBe(204);
+
+      expect((await templates(asMember).get()).status).toBe(403);
+      const denied = await asMember.projects({ projectKey: 'MKT' }).get();
+      expect(denied.status).toBe(200);
+      expect(denied.data?.issueTemplates).toEqual([]);
+
+      await asOwner
+        .projects({ projectKey: 'MKT' })
+        .roles({ roleId: role.data!.id })
+        .patch({
+          permissions: { issue_templates: { read: true } },
+        });
+      expect((await templates(asMember).get()).status).toBe(200);
+      const allowed = await asMember.projects({ projectKey: 'MKT' }).get();
+      expect(allowed.status).toBe(200);
+      expect(allowed.data?.issueTemplates).toMatchObject([input]);
+    });
+
     it('lists the project templates on the project scaffold', async () => {
       const { asOwner, labelId } = await setupProject();
       await templates(asOwner).post({ name: 'Bug report', labelIds: [labelId] });
@@ -144,6 +219,34 @@ describe('issue-templates', () => {
   });
 
   describe('update', () => {
+    it('rolls back both properties and previous labels when replacement fails', async () => {
+      const { asOwner, labelId } = await setupProject();
+      const original = { name: 'Bug report', titleTemplate: 'Bug', labelIds: [labelId] };
+      const created = (await templates(asOwner).post(original)).data!;
+      const other = (await asOwner.projects({ projectKey: 'MKT' }).labels.post({ name: 'chore' }))
+        .data!;
+      const patch = { name: 'Chore', titleTemplate: 'Cleanup', labelIds: [other.id] };
+
+      await withFailingLabelWrite(async () => {
+        expect((await templates(asOwner)({ templateId: created.id }).patch(patch)).status).toBe(
+          500,
+        );
+        expect(await listTemplates(asOwner)).toMatchObject([{ id: created.id, ...original }]);
+      });
+
+      const retry = await templates(asOwner)({ templateId: created.id }).patch(patch);
+      expect(retry.status).toBe(200);
+      expect(retry.data).toMatchObject(patch);
+    });
+
+    it('allows explicitly clearing all labels', async () => {
+      const { asOwner, labelId } = await setupProject();
+      const created = (await templates(asOwner).post({ name: 'Bug', labelIds: [labelId] })).data!;
+      const updated = await templates(asOwner)({ templateId: created.id }).patch({ labelIds: [] });
+      expect(updated.status).toBe(200);
+      expect(updated.data?.labelIds).toEqual([]);
+    });
+
     it('keeps the properties the patch leaves out', async () => {
       const { asOwner, typeId } = await setupProject();
       const created = (await templates(asOwner).post({ name: 'Bug report', typeId })).data!;
