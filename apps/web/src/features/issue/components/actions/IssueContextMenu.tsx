@@ -389,12 +389,8 @@ export default function IssueContextMenu({
               <ContextMenuItem onSelect={() => copyText(issue.identifier)}>
                 {t('copyId')}
               </ContextMenuItem>
-              <ContextMenuItem onSelect={copyShortLink}>
-                {t('copyShortLink')}
-              </ContextMenuItem>
-              <ContextMenuItem onSelect={copyFullUrl}>
-                {t('copyFullUrl')}
-              </ContextMenuItem>
+              <ContextMenuItem onSelect={copyShortLink}>{t('copyShortLink')}</ContextMenuItem>
+              <ContextMenuItem onSelect={copyFullUrl}>{t('copyFullUrl')}</ContextMenuItem>
               <ContextMenuItem onSelect={() => copyText(issue.title)}>
                 {t('copyTitle')}
               </ContextMenuItem>
