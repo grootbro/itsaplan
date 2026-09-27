@@ -47,6 +47,12 @@
     "dueDate": "Дедлайн",
     "clearDueDate": "Убрать дедлайн",
     "labels": "Метки",
+    "copyId": "Скопировать ID",
+    "copyShortLink": "Скопировать короткую ссылку",
+    "copyFullUrl": "Скопировать полную ссылку",
+    "copyTitle": "Скопировать название",
+    "copyDescription": "Скопировать описание",
+    "copyBranch": "Скопировать имя ветки",
     "copyPrompt": "Скопировать промпт",
     "restore": "Восстановить",
     "archive": "Архивировать",
@@ -54,6 +60,7 @@
     "noDelegate": "Без делегата",
     "noInitiative": "Без инициативы",
     "noCycle": "Без цикла",
+    "copyFailed": "Не удалось скопировать",
     "promptCopied": "Промпт скопирован"
   },
   "commands": {
