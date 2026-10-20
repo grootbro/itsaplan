@@ -11,7 +11,6 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
     version: '1.0.0',
     orientation: 'portrait',
     userInterfaceStyle: 'light',
-    newArchEnabled: true,
     ios: {
       supportsTablet: false,
       buildNumber: '4',

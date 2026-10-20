@@ -42,15 +42,15 @@ jobs:
       - name: Lint
         run: bun run lint
 
+      - name: Mobile unit tests
+        run: bun --cwd apps/mobile run test
+
       - name: Typecheck
         run: bun run typecheck
 
       # High and critical advisories fail the job; moderate and lower only print.
       - name: Audit dependencies
         run: bun audit --audit-level=high
-
-      - name: Mobile Inbox scope tests
-        run: bun --cwd apps/mobile run test
 
       - name: Script tests
         run: bun test scripts/
