@@ -7,7 +7,7 @@
     "start": "expo start",
     "ios": "expo start --ios",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.test.json",
     "test": "bun test src/lib/__tests__"
   },
   "dependencies": {

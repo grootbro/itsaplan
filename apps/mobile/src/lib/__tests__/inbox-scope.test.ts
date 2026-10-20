@@ -49,8 +49,8 @@ describe('Inbox scope', () => {
       client.setQueryData([key, all], { unread: 12 });
       client.setQueryData([key, one], { unread: 3 });
       expect(client.getQueryData([key, pending])).toBeUndefined();
-      expect(client.getQueryData([key, one])).toEqual({ unread: 3 });
-      expect(client.getQueryData([key, all])).toEqual({ unread: 12 });
+      expect(client.getQueryData<{ unread: number }>([key, one])).toEqual({ unread: 3 });
+      expect(client.getQueryData<{ unread: number }>([key, all])).toEqual({ unread: 12 });
     }
     client.clear();
   });
