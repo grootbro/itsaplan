@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { defaultPreferences, parsePreferences } from '../preferences';
+import { defaultPreferences, parsePreferences, type Preferences } from '../preferences';
 import { darkColors, lightColors } from '../../ui/palettes';
 
 describe('Saved device preferences', () => {
@@ -22,7 +22,7 @@ describe('Saved device preferences', () => {
     }
   });
   it('retains explicit false and valid settings across a serialization roundtrip', () => {
-    const saved = { theme: 'dark', startScreen: 'my-work', haptics: false };
+    const saved: Preferences = { theme: 'dark', startScreen: 'my-work', haptics: false };
     expect(parsePreferences(JSON.stringify(saved))).toEqual(saved);
   });
   it('restores valid fields independently when another field becomes unsupported', () => {
