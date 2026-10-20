@@ -8,6 +8,7 @@ import type { Priority } from '@/lib/types';
 import { validDate } from '@/lib/validation';
 import { Action, EmptyState, Field, Loading } from '@/ui/primitives';
 import { DateField } from '@/ui/DateField';
+import { MarkdownField } from '@/ui/MarkdownField';
 import { useThemedStyles, type Palette } from '@/ui/theme';
 
 const priorities: { label: string; value: Priority }[] = [
@@ -130,13 +131,7 @@ export default function EditIssue() {
     >
       <Text style={styles.eyebrow}>{issue.data.identifier}</Text>
       <Field label="Title" value={title} onChangeText={setTitle} />
-      <Field
-        label="Description"
-        value={description}
-        onChangeText={setDescription}
-        multiline
-        placeholder="Add details"
-      />
+      <MarkdownField value={description} onChangeText={setDescription} placeholder="Add details" />
       <Text style={styles.label}>Type</Text>
       <View style={styles.options}>
         {board.data.issueTypes.map((type) => (

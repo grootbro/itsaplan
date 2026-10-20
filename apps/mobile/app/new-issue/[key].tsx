@@ -8,6 +8,7 @@ import type { Priority } from '@/lib/types';
 import { validDate } from '@/lib/validation';
 import { Action, EmptyState, Field, Loading } from '@/ui/primitives';
 import { DateField } from '@/ui/DateField';
+import { MarkdownField } from '@/ui/MarkdownField';
 import { useColors, useThemedStyles, type Palette } from '@/ui/theme';
 
 export default function NewIssue() {
@@ -109,12 +110,10 @@ export default function NewIssue() {
         onChangeText={setTitle}
         placeholder="What needs to be done?"
       />
-      <Field
-        label="Description"
+      <MarkdownField
         value={description}
         onChangeText={setDescription}
         placeholder="Add context, links, or acceptance criteria"
-        multiline
       />
       {board.data.issueTypes.length ? (
         <>

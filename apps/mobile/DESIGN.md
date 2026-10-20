@@ -210,3 +210,18 @@ The You screen groups device preferences separately from account actions. Appear
 The Operate layout follows the available window width and accessibility text size. Regular windows use the native navigation sidebar. Work areas of at least 900pt show a 360–420pt task list beside the shared issue detail surface. Selection remains mounted when the window narrows, with a Back to list control; phone-width list selections use the existing navigation stack. Very large text uses one column and bottom navigation.
 
 Account and project directories have bounded reading widths. Focused forms and filter editors use native form sheets on regular windows. iPad supports both orientations and multitasking. Pointer and keyboard access use the same native controls and accessibility labels as touch. Hardware and Simulator visual acceptance remains a separate validation step.
+
+## Issue reading and properties
+
+Issue lists and detail properties share status dots with API colors and priority
+symbols. Keep text labels beside both. Detail titles use 26/34 semibold system text;
+Markdown body uses 16/26, with compact headings, lists, code, quotations and tables.
+Tables and code scroll horizontally instead of squeezing the reading column. Image
+syntax remains an accessible attachment link. Raw HTML renders as inert text.
+
+Properties align a quiet label column with the current value and a 48pt editing
+target. Status, priority and assignee open focused native choice sheets. The current
+choice stays marked, mutations lock controls, and failed saves leave the sheet open.
+Dates are localized; overdue dates include a text cue as well as the danger color.
+Description editing offers Write and Preview without replacing the saved Markdown.
+Shared surfaces resolve in both appearance palettes and the iPad detail workspace.

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
 import { useNavigation, useRouter } from 'expo-router';
 import * as Linking from 'expo-linking';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '@/lib/api';
 import { API_URL, authClient } from '@/lib/auth';
@@ -14,6 +14,8 @@ import { IssueDiscussion } from '@/ui/IssueDiscussion';
 import { IssueChecklists } from '@/ui/IssueChecklists';
 import { IssueWorklogs } from '@/ui/IssueWorklogs';
 import { Notice } from '@/ui/work-controls';
+import { IssueProperties } from './IssueProperties';
+import { MarkdownText } from './MarkdownText';
 
 export function IssueDetailPanel({
   issueId,
@@ -87,23 +89,6 @@ export function IssueDetailPanel({
       Alert.alert('Could not open file', error instanceof Error ? error.message : 'Try again.');
     }
   };
-  const currentState = board.data?.columns.find((column) => column.id === issue.data?.columnId);
-  const states = useMemo(
-    () => [...(board.data?.columns ?? [])].sort((a, b) => a.position - b.position),
-    [board.data],
-  );
-  const update = useMutation({
-    mutationFn: (patch: Parameters<typeof api.updateIssue>[1]) => api.updateIssue(issueId, patch),
-    onSuccess: async () => {
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['issue', issueId] }),
-        queryClient.invalidateQueries({ queryKey: ['issues', project?.key] }),
-        queryClient.invalidateQueries({ queryKey: ['assigned'] }),
-        queryClient.invalidateQueries({ queryKey: ['search'] }),
-      ]);
-    },
-    onError: (error) => Alert.alert('Could not update issue', error.message),
-  });
   const watch = useMutation({
     mutationFn: (enabled: boolean) => api.watchIssue(issueId, enabled),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['issue', issueId] }),
@@ -155,6 +140,12 @@ export function IssueDetailPanel({
 
   if (!Number.isSafeInteger(issueId) || issueId <= 0) return <EmptyState title="Invalid issue" />;
   if (issue.isPending) return <Loading />;
+  if (!issue.data && issue.isError)
+    return (
+      <View style={styles.screen}>
+        <Notice message="Could not load issue." onPress={() => void issue.refetch()} />
+      </View>
+    );
   if (!issue.data)
     return (
       <EmptyState
@@ -215,31 +206,6 @@ export function IssueDetailPanel({
             onPress={() => void Promise.all([projects.refetch(), board.refetch()])}
           />
         ) : null}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 8, marginBottom: 16 }}
-        >
-          {[
-            ['details', 'Details'],
-            ...(canReadChecklists ? [['checklists', 'Checklists']] : []),
-            ...(board.data?.project.timeLoggingEnabled ? [['time', 'Time']] : []),
-            ['discussion', 'Discussion'],
-          ].map(([section, label]) => (
-            <Pressable
-              key={section}
-              accessibilityRole="button"
-              style={styles.sectionButton}
-              onPress={() => {
-                const y = positions.current[section];
-                if (y !== undefined)
-                  scroll.current?.scrollTo({ y: Math.max(0, y - 12), animated: false });
-              }}
-            >
-              <Text style={styles.editLabel}>{label}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
         <View
           onLayout={(event) => {
             positions.current.details = event.nativeEvent.layout.y;
@@ -248,9 +214,22 @@ export function IssueDetailPanel({
         <Text style={styles.identifier}>
           {issue.data.identifier} · {project?.name ?? 'Project'}
         </Text>
-        <Text style={styles.title}>{issue.data.title}</Text>
+        <Text accessibilityRole="header" style={styles.title}>
+          {issue.data.title}
+        </Text>
         {issue.data.archivedAt ? <Text style={styles.archivedNotice}>Archived issue</Text> : null}
         <View style={styles.actions}>
+          {canEdit ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push(`/edit-issue/${issueId}`)}
+              style={styles.editButton}
+            >
+              <Ionicons name="create-outline" size={17} color={colors.accent} />
+              <Text style={styles.editLabel}>Edit issue</Text>
+            </Pressable>
+          ) : null}
+
           {session?.user ? (
             <Pressable
               accessibilityRole="button"
@@ -291,52 +270,35 @@ export function IssueDetailPanel({
             )
           ) : null}
         </View>
-        {canEdit ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push(`/edit-issue/${issueId}`)}
-            style={styles.editButton}
-          >
-            <Ionicons name="create-outline" size={17} color={colors.accent} />
-            <Text style={styles.editLabel}>Edit issue</Text>
-          </Pressable>
-        ) : null}
-        <View style={styles.metaLine}>
-          <Text style={styles.stateName}>{currentState?.name ?? 'State'}</Text>
-          {issue.data.typeId ? (
-            <Text style={styles.date}>
-              {board.data?.issueTypes.find((type) => type.id === issue.data.typeId)?.name}
-            </Text>
-          ) : null}
-          {issue.data.priority ? <Text style={styles.priority}>{issue.data.priority}</Text> : null}
-          {issue.data.startDate ? (
-            <Text style={styles.date}>Starts {issue.data.startDate}</Text>
-          ) : null}
-          {issue.data.dueDate ? <Text style={styles.date}>Due {issue.data.dueDate}</Text> : null}
-          {issue.data.estimatePoints != null ? (
-            <Text style={styles.date}>{issue.data.estimatePoints} pt</Text>
-          ) : null}
-          {issue.data.cycle ? (
-            <Text style={styles.date}>Cycle · {issue.data.cycle.name}</Text>
-          ) : null}
-          {issue.data.initiative ? (
-            <Text style={styles.date}>Initiative · {issue.data.initiative.title}</Text>
-          ) : null}
-        </View>
-        {issue.data.labelIds.length ? (
-          <View style={styles.labels}>
-            {issue.data.labelIds.map((id) => {
-              const label = board.data?.labels.find((item) => item.id === id);
-              return label ? (
-                <Text key={id} style={styles.labelPill}>
-                  {label.name}
-                </Text>
-              ) : null;
-            })}
-          </View>
-        ) : null}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 8, marginBottom: 16 }}
+        >
+          {[
+            ['details', 'Details'],
+            ...(canReadChecklists ? [['checklists', 'Checklists']] : []),
+            ...(board.data?.project.timeLoggingEnabled ? [['time', 'Time']] : []),
+            ['discussion', 'Discussion'],
+          ].map(([section, label]) => (
+            <Pressable
+              key={section}
+              accessibilityRole="button"
+              style={styles.sectionButton}
+              onPress={() => {
+                const y = positions.current[section];
+                if (y !== undefined)
+                  scroll.current?.scrollTo({ y: Math.max(0, y - 12), animated: false });
+              }}
+            >
+              <Text style={styles.editLabel}>{label}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
         {issue.data.description ? (
-          <Text style={styles.description}>{issue.data.description}</Text>
+          <View style={styles.description}>
+            <MarkdownText>{issue.data.description}</MarkdownText>
+          </View>
         ) : canEdit ? (
           <Pressable
             accessibilityRole="button"
@@ -345,6 +307,13 @@ export function IssueDetailPanel({
             <Text style={styles.descriptionPrompt}>Add a description</Text>
           </Pressable>
         ) : null}
+        <IssueProperties
+          key={issueId}
+          issue={issue.data}
+          board={board.data}
+          canEdit={!!canEdit}
+          onEdit={() => router.push(`/edit-issue/${issueId}`)}
+        />
         {issue.data.fields.length ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Details</Text>
@@ -382,6 +351,34 @@ export function IssueDetailPanel({
                   'member',
                 ].includes(field.fieldType);
               if (!value && !editable) return null;
+              if (field.fieldType === 'markdown')
+                return (
+                  <View key={field.fieldId} style={{ marginTop: 18 }}>
+                    <View style={styles.sectionHeading}>
+                      <Text style={styles.fieldName}>{field.name}</Text>
+                      {editable ? (
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Edit ${field.name}`}
+                          style={styles.iconButton}
+                          onPress={() =>
+                            router.push({
+                              pathname: '/edit-field/[issueId]/[fieldId]',
+                              params: { issueId: String(issueId), fieldId: String(field.fieldId) },
+                            })
+                          }
+                        >
+                          <Ionicons name="create-outline" size={18} color={colors.muted} />
+                        </Pressable>
+                      ) : null}
+                    </View>
+                    {value ? (
+                      <MarkdownText>{value}</MarkdownText>
+                    ) : (
+                      <Text style={styles.emptyField}>Not set</Text>
+                    )}
+                  </View>
+                );
               return (
                 <Pressable
                   key={field.fieldId}
@@ -411,34 +408,6 @@ export function IssueDetailPanel({
                 </Pressable>
               );
             })}
-          </View>
-        ) : null}
-        {canEdit ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Move to</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8 }}
-            >
-              {states.map((state) => (
-                <Pressable
-                  key={state.id}
-                  disabled={update.isPending}
-                  onPress={() => update.mutate({ columnId: state.id })}
-                  style={[styles.pill, state.id === issue.data?.columnId && styles.pillActive]}
-                >
-                  <Text
-                    style={[
-                      styles.pillText,
-                      state.id === issue.data?.columnId && styles.pillTextActive,
-                    ]}
-                  >
-                    {state.name}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
           </View>
         ) : null}
         {issue.data.links.length || canEdit ? (
@@ -666,10 +635,10 @@ const createStyles = (colors: Palette) =>
     },
     title: {
       color: colors.ink,
-      fontSize: 31,
-      fontWeight: '700',
-      lineHeight: 38,
-      letterSpacing: -0.9,
+      fontSize: 26,
+      fontWeight: '600',
+      lineHeight: 34,
+      letterSpacing: -0.5,
       marginTop: 14,
     },
     archivedNotice: {
@@ -678,7 +647,7 @@ const createStyles = (colors: Palette) =>
       fontWeight: '700',
       marginTop: 8,
     },
-    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 22, marginTop: 12 },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 8 },
     iconButton: { minWidth: 48, minHeight: 48, justifyContent: 'center', alignItems: 'center' },
     sectionButton: {
       minHeight: 48,
@@ -692,30 +661,11 @@ const createStyles = (colors: Palette) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 6,
-      marginTop: 14,
     },
     editLabel: { color: colors.accent, fontSize: 13, fontWeight: '700' },
-    metaLine: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 8,
-      marginTop: 18,
-      alignItems: 'center',
-    },
-    labels: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 12 },
-    labelPill: {
-      color: colors.accent,
-      backgroundColor: colors.accentSoft,
-      overflow: 'hidden',
-      borderRadius: 9,
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      fontSize: 12,
-      fontWeight: '700',
-    },
     fieldRow: {
       paddingVertical: 9,
-      borderBottomWidth: 1,
+      borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.line,
       flexDirection: 'row',
       alignItems: 'center',
@@ -723,31 +673,19 @@ const createStyles = (colors: Palette) =>
     fieldName: { color: colors.muted, fontSize: 12, fontWeight: '600' },
     fieldValue: { color: colors.ink, fontSize: 14, marginTop: 4, lineHeight: 20 },
     emptyField: { color: colors.muted },
-    stateName: {
-      color: colors.ink,
-      backgroundColor: colors.accentSoft,
-      overflow: 'hidden',
-      borderRadius: 9,
-      paddingHorizontal: 10,
-      paddingVertical: 6,
-      fontSize: 12,
-      fontWeight: '700',
-    },
-    priority: { color: colors.muted, textTransform: 'capitalize', fontSize: 12 },
     date: { color: colors.muted, fontSize: 12 },
-    description: {
-      color: colors.ink,
-      fontSize: 16,
-      lineHeight: 26,
-      marginTop: 30,
-    },
+    description: { marginTop: 24 },
     descriptionPrompt: {
       color: colors.muted,
       fontSize: 14,
       marginTop: 30,
     },
-    placeholder: { color: colors.muted, fontSize: 14, marginTop: 18 },
-    section: { marginTop: 36, paddingTop: 19, borderTopWidth: 1, borderTopColor: colors.line },
+    section: {
+      marginTop: 36,
+      paddingTop: 19,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.line,
+    },
     sectionHeading: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -765,22 +703,12 @@ const createStyles = (colors: Palette) =>
       fontWeight: '700',
       marginBottom: 14,
     },
-    pill: {
-      minHeight: 48,
-      backgroundColor: colors.accentSoft,
-      borderRadius: 20,
-      paddingHorizontal: 14,
-      paddingVertical: 10,
-    },
-    pillActive: { backgroundColor: colors.ink },
-    pillText: { color: colors.ink, fontSize: 13, fontWeight: '600' },
-    pillTextActive: { color: colors.onAccent },
     related: {
       backgroundColor: colors.canvas,
       minHeight: 48,
       paddingVertical: 13,
       paddingHorizontal: 12,
-      borderBottomWidth: 1,
+      borderBottomWidth: StyleSheet.hairlineWidth,
       borderBottomColor: colors.line,
       flexDirection: 'row',
       gap: 9,
@@ -794,67 +722,5 @@ const createStyles = (colors: Palette) =>
       flexDirection: 'row',
       alignItems: 'center',
       gap: 9,
-    },
-    checklist: {
-      backgroundColor: colors.canvas,
-      borderRadius: 0,
-      paddingHorizontal: 0,
-      paddingVertical: 15,
-      marginBottom: 9,
-    },
-    checklistTitle: {
-      color: colors.ink,
-      fontSize: 14,
-      fontWeight: '700',
-      marginBottom: 8,
-    },
-    checklistItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 9,
-      paddingVertical: 8,
-    },
-    checklistText: { color: colors.ink, fontSize: 14, flex: 1 },
-    completedText: { color: colors.muted, textDecorationLine: 'line-through' },
-    inlineForm: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-      paddingTop: 8,
-    },
-    inlineInput: {
-      flex: 1,
-      color: colors.ink,
-      fontSize: 14,
-      backgroundColor: colors.surface,
-      borderColor: colors.line,
-      borderWidth: 1,
-      borderRadius: 10,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
-    },
-    feedItem: {
-      paddingVertical: 13,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.line,
-    },
-    feedAuthor: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-    feedBody: { color: colors.ink, fontSize: 14, lineHeight: 21, marginTop: 5 },
-    composer: {
-      backgroundColor: colors.surface,
-      borderTopColor: colors.line,
-      borderTopWidth: 1,
-      padding: 12,
-      flexDirection: 'row',
-      alignItems: 'flex-end',
-      gap: 8,
-    },
-    commentInput: {
-      flex: 1,
-      color: colors.ink,
-      fontSize: 15,
-      maxHeight: 110,
-      paddingHorizontal: 12,
-      paddingVertical: 10,
     },
   });

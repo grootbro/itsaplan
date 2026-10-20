@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 import { activityRows, canManageEntry } from '@/lib/collaboration';
 import type { FeedItem } from '@/lib/types';
 import { Action, Loading } from './primitives';
+import { MarkdownText } from './MarkdownText';
 import { Choices, NativeSheet, Notice } from './work-controls';
 import { useColors, useThemedStyles, type Palette } from './theme';
 
@@ -124,9 +125,15 @@ export function IssueDiscussion({
           {item.replyToId !== null ? (
             <Text style={styles.meta}>Reply to comment #{item.replyToId}</Text>
           ) : null}
-          <Text selectable style={styles.body}>
-            {item.body ?? (item.action ?? item.kind).replaceAll('_', ' ')}
-          </Text>
+          {item.kind === 'comment' && item.body ? (
+            <View style={{ marginTop: 10 }}>
+              <MarkdownText>{item.body}</MarkdownText>
+            </View>
+          ) : (
+            <Text selectable style={styles.body}>
+              {item.body ?? (item.action ?? item.kind).replaceAll('_', ' ')}
+            </Text>
+          )}
           {item.kind === 'comment' && canEdit ? (
             <View style={styles.actions}>
               <Pressable
