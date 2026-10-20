@@ -43,7 +43,8 @@ jobs:
         run: bun run lint
 
       - name: Mobile unit tests
-        run: bun --cwd apps/mobile run test
+        working-directory: apps/mobile
+        run: bun run test
 
       - name: Typecheck
         run: bun run typecheck
