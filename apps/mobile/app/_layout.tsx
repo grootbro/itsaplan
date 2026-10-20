@@ -102,8 +102,8 @@ function DeviceAppearance() {
   const { preferences } = usePreferences();
   const { dark } = useTheme();
   useEffect(() => {
-    Appearance.setColorScheme(preferences.theme === 'system' ? null : preferences.theme);
-    return () => Appearance.setColorScheme(null);
+    Appearance.setColorScheme(preferences.theme === 'system' ? 'unspecified' : preferences.theme);
+    return () => Appearance.setColorScheme('unspecified');
   }, [preferences.theme]);
   return <StatusBar style={dark ? 'light' : 'dark'} />;
 }
