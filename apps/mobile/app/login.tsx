@@ -10,9 +10,10 @@ import {
 } from 'react-native';
 import { authClient } from '@/lib/auth';
 import { Action, Field } from '@/ui/primitives';
-import { colors } from '@/ui/theme';
+import { useThemedStyles, type Palette } from '@/ui/theme';
 
 export default function Login() {
+  const styles = useThemedStyles(createStyles);
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -69,21 +70,22 @@ export default function Login() {
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.canvas },
-  content: { flexGrow: 1, justifyContent: 'center', padding: 30 },
-  mark: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
-    backgroundColor: colors.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 26,
-  },
-  markText: { color: '#FFFFFF', fontSize: 34, fontWeight: '800' },
-  brand: { color: colors.ink, fontSize: 40, letterSpacing: -2, fontWeight: '800' },
-  subtitle: { color: colors.muted, fontSize: 16, marginTop: 8 },
-  form: { marginTop: 48 },
-  foot: { color: colors.muted, fontSize: 13, textAlign: 'center', marginTop: 30 },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    root: { flex: 1, backgroundColor: colors.canvas },
+    content: { flexGrow: 1, justifyContent: 'center', padding: 30 },
+    mark: {
+      width: 60,
+      height: 60,
+      borderRadius: 18,
+      backgroundColor: colors.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: 26,
+    },
+    markText: { color: colors.onAccent, fontSize: 34, fontWeight: '800' },
+    brand: { color: colors.ink, fontSize: 40, letterSpacing: -2, fontWeight: '800' },
+    subtitle: { color: colors.muted, fontSize: 16, marginTop: 8 },
+    form: { marginTop: 48 },
+    foot: { color: colors.muted, fontSize: 13, textAlign: 'center', marginTop: 30 },
+  });

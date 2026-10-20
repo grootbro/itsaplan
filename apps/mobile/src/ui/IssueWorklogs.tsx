@@ -7,7 +7,7 @@ import { canManageEntry } from '@/lib/collaboration';
 import { Loading } from './primitives';
 import { NativeSheet, Notice } from './work-controls';
 import { WorklogForm } from './WorklogForm';
-import { colors } from './theme';
+import { useThemedStyles, type Palette } from './theme';
 
 export function IssueWorklogs({
   issueId,
@@ -22,6 +22,7 @@ export function IssueWorklogs({
   userId?: string;
   loggedMinutes: number;
 }) {
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const client = useQueryClient();
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -144,24 +145,25 @@ export function IssueWorklogs({
     </View>
   );
 }
-const styles = StyleSheet.create({
-  section: {
-    marginTop: 32,
-    paddingTop: 20,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
-  },
-  heading: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
-  title: { color: colors.ink, fontSize: 18, fontWeight: '600' },
-  meta: { color: colors.muted, fontSize: 13, lineHeight: 20, marginTop: 5 },
-  body: { color: colors.ink, fontSize: 16, lineHeight: 24, marginTop: 7 },
-  button: { minWidth: 48, minHeight: 48, paddingHorizontal: 10, justifyContent: 'center' },
-  buttonText: { color: colors.ink, fontSize: 15, fontWeight: '600' },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  entry: {
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.line,
-  },
-  danger: { color: colors.danger, fontSize: 15 },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    section: {
+      marginTop: 32,
+      paddingTop: 20,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.line,
+    },
+    heading: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+    title: { color: colors.ink, fontSize: 18, fontWeight: '600' },
+    meta: { color: colors.muted, fontSize: 13, lineHeight: 20, marginTop: 5 },
+    body: { color: colors.ink, fontSize: 16, lineHeight: 24, marginTop: 7 },
+    button: { minWidth: 48, minHeight: 48, paddingHorizontal: 10, justifyContent: 'center' },
+    buttonText: { color: colors.ink, fontSize: 15, fontWeight: '600' },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    entry: {
+      paddingVertical: 16,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.line,
+    },
+    danger: { color: colors.danger, fontSize: 15 },
+  });

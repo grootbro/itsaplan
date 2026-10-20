@@ -4,7 +4,7 @@ import { timeEntry } from '@/lib/collaboration';
 import type { Worklog } from '@/lib/types';
 import { Action, Field } from './primitives';
 import { DateField } from './DateField';
-import { colors } from './theme';
+import { useThemedStyles, type Palette } from './theme';
 
 export function WorklogForm({
   initial,
@@ -15,6 +15,7 @@ export function WorklogForm({
   pending: boolean;
   onSubmit: (body: { minutes: number; spentOn: string; note: string | null }) => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   const [hours, setHours] = useState(initial ? String(Math.floor(initial.minutes / 60)) : '0');
   const [minutes, setMinutes] = useState(initial ? String(initial.minutes % 60) : '');
   const [spentOn, setSpentOn] = useState(initial?.spentOn ?? new Date().toISOString().slice(0, 10));
@@ -68,18 +69,19 @@ export function WorklogForm({
     </View>
   );
 }
-const styles = StyleSheet.create({
-  label: { color: colors.ink, fontSize: 15, fontWeight: '600', marginBottom: 8 },
-  note: {
-    color: colors.ink,
-    fontSize: 17,
-    lineHeight: 25,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    minHeight: 96,
-    padding: 16,
-    marginBottom: 20,
-    textAlignVertical: 'top',
-  },
-  hint: { color: colors.muted, fontSize: 14, lineHeight: 21, marginBottom: 16 },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    label: { color: colors.ink, fontSize: 15, fontWeight: '600', marginBottom: 8 },
+    note: {
+      color: colors.ink,
+      fontSize: 17,
+      lineHeight: 25,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      minHeight: 96,
+      padding: 16,
+      marginBottom: 20,
+      textAlignVertical: 'top',
+    },
+    hint: { color: colors.muted, fontSize: 14, lineHeight: 21, marginBottom: 16 },
+  });

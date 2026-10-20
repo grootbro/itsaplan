@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Issue } from '@/lib/types';
 import { localDay } from '@/lib/issue-list';
-import { colors } from './theme';
+import { useColors, useThemedStyles, type Palette } from './theme';
 
 export function IssueRow({
   issue,
@@ -23,6 +23,8 @@ export function IssueRow({
   stateColor?: string;
   assignee?: string;
 }) {
+  const colors = useColors();
+  const styles = useThemedStyles(createStyles);
   const date = issue.dueDate?.slice(0, 10);
   const overdue =
     date && stateType && !['completed', 'canceled'].includes(stateType) && date < localDay();
@@ -90,29 +92,30 @@ export function IssueRow({
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    backgroundColor: colors.canvas,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.line,
-  },
-  main: { flex: 1, paddingHorizontal: 22, paddingVertical: 17, minHeight: 80 },
-  pressed: { backgroundColor: colors.accentSoft },
-  top: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 7 },
-  identifier: { color: colors.muted, fontSize: 13, fontWeight: '600' },
-  status: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
-  dot: { height: 7, width: 7, borderRadius: 4 },
-  title: { color: colors.ink, fontSize: 17, fontWeight: '500', lineHeight: 25 },
-  bottom: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 9 },
-  priority: { fontSize: 13, fontWeight: '600' },
-  meta: { color: colors.muted, fontSize: 13, lineHeight: 19 },
-  overdue: { color: colors.danger },
-  actions: {
-    minWidth: 48,
-    minHeight: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      backgroundColor: colors.canvas,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.line,
+    },
+    main: { flex: 1, paddingHorizontal: 22, paddingVertical: 17, minHeight: 80 },
+    pressed: { backgroundColor: colors.accentSoft },
+    top: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 7 },
+    identifier: { color: colors.muted, fontSize: 13, fontWeight: '600' },
+    status: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
+    dot: { height: 7, width: 7, borderRadius: 4 },
+    title: { color: colors.ink, fontSize: 17, fontWeight: '500', lineHeight: 25 },
+    bottom: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 9 },
+    priority: { fontSize: 13, fontWeight: '600' },
+    meta: { color: colors.muted, fontSize: 13, lineHeight: 19 },
+    overdue: { color: colors.danger },
+    actions: {
+      minWidth: 48,
+      minHeight: 48,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 8,
+    },
+  });

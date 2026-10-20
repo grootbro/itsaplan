@@ -7,7 +7,7 @@ import { movedIds } from '@/lib/collaboration';
 import type { IssueDetail } from '@/lib/types';
 import { Action } from './primitives';
 import { NativeSheet } from './work-controls';
-import { colors } from './theme';
+import { useColors, useThemedStyles, type Palette } from './theme';
 
 type Editor =
   | { kind: 'list'; id?: number; value: string }
@@ -27,6 +27,8 @@ export function IssueChecklists({
   lists: IssueDetail['checklists'];
   canEdit: boolean;
 }) {
+  const colors = useColors();
+  const styles = useThemedStyles(createStyles);
   const client = useQueryClient();
   const [editor, setEditor] = useState<Editor | null>(null);
   const [text, setText] = useState('');
@@ -257,50 +259,51 @@ export function IssueChecklists({
     </View>
   );
 }
-const styles = StyleSheet.create({
-  section: {
-    marginTop: 32,
-    paddingTop: 20,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
-  },
-  heading: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  title: { color: colors.ink, fontSize: 18, fontWeight: '600' },
-  checklist: { marginTop: 18 },
-  listTitle: { color: colors.ink, fontSize: 17, fontWeight: '600' },
-  meta: { color: colors.muted, fontSize: 13, marginTop: 5 },
-  muted: { color: colors.muted, fontSize: 15, marginTop: 12 },
-  row: { flexDirection: 'row', alignItems: 'center' },
-  check: {
-    flex: 1,
-    minHeight: 48,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  content: { flex: 1, color: colors.ink, fontSize: 16, lineHeight: 24 },
-  completed: { color: colors.muted, textDecorationLine: 'line-through' },
-  button: { minWidth: 48, minHeight: 48, paddingHorizontal: 10, justifyContent: 'center' },
-  buttonText: { color: colors.ink, fontSize: 15, fontWeight: '600' },
-  danger: { color: colors.danger, fontSize: 15 },
-  label: { color: colors.ink, fontSize: 15, fontWeight: '600', marginBottom: 8 },
-  input: {
-    color: colors.ink,
-    fontSize: 17,
-    lineHeight: 25,
-    minHeight: 100,
-    borderRadius: 12,
-    padding: 16,
-    backgroundColor: colors.surface,
-    marginBottom: 20,
-    textAlignVertical: 'top',
-  },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginVertical: 20 },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    section: {
+      marginTop: 32,
+      paddingTop: 20,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.line,
+    },
+    heading: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    title: { color: colors.ink, fontSize: 18, fontWeight: '600' },
+    checklist: { marginTop: 18 },
+    listTitle: { color: colors.ink, fontSize: 17, fontWeight: '600' },
+    meta: { color: colors.muted, fontSize: 13, marginTop: 5 },
+    muted: { color: colors.muted, fontSize: 15, marginTop: 12 },
+    row: { flexDirection: 'row', alignItems: 'center' },
+    check: {
+      flex: 1,
+      minHeight: 48,
+      paddingVertical: 12,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    content: { flex: 1, color: colors.ink, fontSize: 16, lineHeight: 24 },
+    completed: { color: colors.muted, textDecorationLine: 'line-through' },
+    button: { minWidth: 48, minHeight: 48, paddingHorizontal: 10, justifyContent: 'center' },
+    buttonText: { color: colors.ink, fontSize: 15, fontWeight: '600' },
+    danger: { color: colors.danger, fontSize: 15 },
+    label: { color: colors.ink, fontSize: 15, fontWeight: '600', marginBottom: 8 },
+    input: {
+      color: colors.ink,
+      fontSize: 17,
+      lineHeight: 25,
+      minHeight: 100,
+      borderRadius: 12,
+      padding: 16,
+      backgroundColor: colors.surface,
+      marginBottom: 20,
+      textAlignVertical: 'top',
+    },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginVertical: 20 },
+  });

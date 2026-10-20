@@ -5,9 +5,11 @@ import { api } from '@/lib/api';
 import { inboxProjectId, resolveInboxScope, type InboxScope } from '@/lib/inbox-scope';
 import { useProjectScope } from '@/lib/project-scope';
 import { Action, EmptyState, Loading, ScreenTitle } from '@/ui/primitives';
-import { colors } from '@/ui/theme';
+import { useColors, useThemedStyles, type Palette } from '@/ui/theme';
 
 export default function Inbox() {
+  const colors = useColors();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const queryClient = useQueryClient();
   const { projectKey, inboxAll, setInboxAll } = useProjectScope();
@@ -185,48 +187,49 @@ export default function Inbox() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  markAll: { color: colors.ink, fontSize: 13, fontWeight: '700' },
-  scope: {
-    flexDirection: 'row',
-    marginHorizontal: 22,
-    marginBottom: 15,
-    backgroundColor: colors.accentSoft,
-    borderRadius: 12,
-    padding: 4,
-  },
-  scopeOption: {
-    flex: 1,
-    borderRadius: 9,
-    paddingHorizontal: 8,
-    paddingVertical: 10,
-    alignItems: 'center',
-  },
-  scopeActive: { backgroundColor: colors.surface },
-  scopeText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
-  scopeTextActive: { color: colors.ink },
-  list: { paddingBottom: 32 },
-  item: {
-    paddingHorizontal: 22,
-    paddingVertical: 17,
-    backgroundColor: colors.canvas,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    flexDirection: 'row',
-    gap: 11,
-  },
-  unreadItem: { backgroundColor: colors.surface },
-  dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent, marginTop: 6 },
-  readDot: { backgroundColor: 'transparent' },
-  context: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  title: { color: colors.ink, fontSize: 16, fontWeight: '500', marginTop: 5, lineHeight: 23 },
-  unreadTitle: { fontWeight: '700' },
-  detail: { color: colors.muted, fontSize: 12, marginTop: 7 },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.canvas },
+    markAll: { color: colors.ink, fontSize: 13, fontWeight: '700' },
+    scope: {
+      flexDirection: 'row',
+      marginHorizontal: 22,
+      marginBottom: 15,
+      backgroundColor: colors.accentSoft,
+      borderRadius: 12,
+      padding: 4,
+    },
+    scopeOption: {
+      flex: 1,
+      borderRadius: 9,
+      paddingHorizontal: 8,
+      paddingVertical: 10,
+      alignItems: 'center',
+    },
+    scopeActive: { backgroundColor: colors.surface },
+    scopeText: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+    scopeTextActive: { color: colors.ink },
+    list: { paddingBottom: 32 },
+    item: {
+      paddingHorizontal: 22,
+      paddingVertical: 17,
+      backgroundColor: colors.canvas,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.line,
+      flexDirection: 'row',
+      gap: 11,
+    },
+    unreadItem: { backgroundColor: colors.surface },
+    dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: colors.accent, marginTop: 6 },
+    readDot: { backgroundColor: 'transparent' },
+    context: {
+      color: colors.muted,
+      fontSize: 11,
+      fontWeight: '800',
+      textTransform: 'uppercase',
+      letterSpacing: 0.4,
+    },
+    title: { color: colors.ink, fontSize: 16, fontWeight: '500', marginTop: 5, lineHeight: 23 },
+    unreadTitle: { fontWeight: '700' },
+    detail: { color: colors.muted, fontSize: 12, marginTop: 7 },
+  });

@@ -1,3 +1,4 @@
+import { SearchButton } from '@/ui/SearchButton';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -15,10 +16,13 @@ import { api } from '@/lib/api';
 import type { Project } from '@/lib/types';
 import { useProjectScope } from '@/lib/project-scope';
 import { Action, EmptyState, Loading, ScreenTitle } from '@/ui/primitives';
-import { Choices, NativeSheet, Notice, SearchInput, workStyles } from '@/ui/work-controls';
-import { colors } from '@/ui/theme';
+import { Choices, NativeSheet, Notice, SearchInput, useWorkStyles } from '@/ui/work-controls';
+import { useColors, useThemedStyles, type Palette } from '@/ui/theme';
 
 export default function Projects() {
+  const colors = useColors();
+  const styles = useThemedStyles(createStyles);
+  const workStyles = useWorkStyles();
   const router = useRouter();
   const client = useQueryClient();
   const { selectProject } = useProjectScope();
@@ -65,6 +69,7 @@ export default function Projects() {
   const header = (
     <>
       <ScreenTitle
+        action={<SearchButton />}
         title="Projects"
         eyebrow={
           query.data
@@ -219,46 +224,47 @@ export default function Projects() {
     </View>
   );
 }
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  project: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.line,
-  },
-  open: {
-    minHeight: 86,
-    flex: 1,
-    paddingHorizontal: 22,
-    paddingVertical: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
-  },
-  actions: {
-    minWidth: 48,
-    minHeight: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  monogram: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.accentSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  monogramText: { color: colors.ink, fontSize: 13, fontWeight: '700' },
-  name: { color: colors.ink, fontSize: 17, fontWeight: '600' },
-  meta: { color: colors.muted, fontSize: 13, marginTop: 5 },
-  explanation: {
-    color: colors.muted,
-    fontSize: 15,
-    lineHeight: 23,
-    marginBottom: 20,
-    marginTop: 12,
-  },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.canvas },
+    project: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.line,
+    },
+    open: {
+      minHeight: 86,
+      flex: 1,
+      paddingHorizontal: 22,
+      paddingVertical: 15,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 15,
+    },
+    actions: {
+      minWidth: 48,
+      minHeight: 48,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: 10,
+    },
+    monogram: {
+      width: 44,
+      height: 44,
+      borderRadius: 12,
+      backgroundColor: colors.accentSoft,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    monogramText: { color: colors.ink, fontSize: 13, fontWeight: '700' },
+    name: { color: colors.ink, fontSize: 17, fontWeight: '600' },
+    meta: { color: colors.muted, fontSize: 13, marginTop: 5 },
+    explanation: {
+      color: colors.muted,
+      fontSize: 15,
+      lineHeight: 23,
+      marginBottom: 20,
+      marginTop: 12,
+    },
+  });

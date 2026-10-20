@@ -1,7 +1,7 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors } from './theme';
+import { useThemedStyles, useTheme, type Palette } from './theme';
 
 function localDate(value: Date): string {
   const year = value.getFullYear();
@@ -21,6 +21,8 @@ export function DateField({
   onChange: (value: string) => void;
   disabled?: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const { dark } = useTheme();
   const [open, setOpen] = useState(false);
   const selected = value ? new Date(`${value}T12:00:00`) : new Date();
 
@@ -54,6 +56,7 @@ export function DateField({
       </View>
       {open && !disabled ? (
         <DateTimePicker
+          themeVariant={dark ? 'dark' : 'light'}
           mode="date"
           display={Platform.OS === 'ios' ? 'inline' : 'default'}
           value={Number.isNaN(selected.getTime()) ? new Date() : selected}
@@ -67,20 +70,21 @@ export function DateField({
   );
 }
 
-const styles = StyleSheet.create({
-  field: { marginBottom: 18, gap: 8 },
-  label: { color: colors.ink, fontSize: 13, fontWeight: '700' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  choice: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderColor: colors.line,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-  },
-  value: { color: colors.ink, fontSize: 16 },
-  clearButton: { minWidth: 48, minHeight: 48, justifyContent: 'center', alignItems: 'center' },
-  clear: { color: colors.accent, fontSize: 13, fontWeight: '700', padding: 10 },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    field: { marginBottom: 18, gap: 8 },
+    label: { color: colors.ink, fontSize: 13, fontWeight: '700' },
+    row: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+    choice: {
+      flex: 1,
+      backgroundColor: colors.surface,
+      borderColor: colors.line,
+      borderWidth: 1,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+    },
+    value: { color: colors.ink, fontSize: 16 },
+    clearButton: { minWidth: 48, minHeight: 48, justifyContent: 'center', alignItems: 'center' },
+    clear: { color: colors.accent, fontSize: 13, fontWeight: '700', padding: 10 },
+  });

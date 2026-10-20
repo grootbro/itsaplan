@@ -10,10 +10,10 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
     icon: './assets/icon.png',
     version: '1.0.0',
     orientation: 'portrait',
-    userInterfaceStyle: 'light',
+    userInterfaceStyle: 'automatic',
     ios: {
       supportsTablet: false,
-      buildNumber: '4',
+      buildNumber: '5',
       ...(process.env.IOS_BUNDLE_IDENTIFIER
         ? { bundleIdentifier: process.env.IOS_BUNDLE_IDENTIFIER }
         : {}),

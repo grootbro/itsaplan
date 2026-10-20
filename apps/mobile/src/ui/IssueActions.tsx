@@ -6,7 +6,7 @@ import type { Issue, Priority, ProjectBoard } from '@/lib/types';
 import { Action } from './primitives';
 import { DateField } from './DateField';
 import { Choices, NativeSheet } from './work-controls';
-import { colors } from './theme';
+import { useColors } from './theme';
 
 export function IssueActions({
   issue,
@@ -17,6 +17,7 @@ export function IssueActions({
   board: ProjectBoard;
   onClose: () => void;
 }) {
+  const colors = useColors();
   const client = useQueryClient();
   const [date, setDate] = useState(issue.dueDate?.slice(0, 10) ?? '');
   const update = useMutation({

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { api } from '@/lib/api';
 import { EmptyState, Loading } from '@/ui/primitives';
-import { colors } from '@/ui/theme';
+import { useColors, useThemedStyles, type Palette } from '@/ui/theme';
 
 const relations = [
   { label: 'Related', kind: 'relates' },
@@ -23,6 +23,8 @@ const relations = [
 ] as const;
 
 export default function LinkIssue() {
+  const colors = useColors();
+  const styles = useThemedStyles(createStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const issueId = Number(id);
   const router = useRouter();
@@ -154,53 +156,54 @@ export default function LinkIssue() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  eyebrow: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 0.8,
-    marginHorizontal: 22,
-    marginTop: 20,
-    marginBottom: 26,
-  },
-  label: {
-    color: colors.ink,
-    fontSize: 13,
-    fontWeight: '700',
-    marginHorizontal: 22,
-    marginBottom: 9,
-  },
-  scroll: { flexGrow: 0, marginBottom: 22 },
-  options: { paddingHorizontal: 22, gap: 7 },
-  option: {
-    backgroundColor: colors.surface,
-    borderRadius: 13,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  active: { backgroundColor: colors.ink },
-  optionText: { color: colors.ink, fontSize: 13, fontWeight: '600' },
-  activeText: { color: '#FFFFFF' },
-  search: {
-    marginHorizontal: 22,
-    marginBottom: 16,
-    backgroundColor: colors.surface,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  input: { flex: 1, height: 48, fontSize: 15, color: colors.ink },
-  go: { color: colors.accent, fontSize: 13, fontWeight: '700' },
-  result: {
-    backgroundColor: colors.surface,
-    paddingHorizontal: 22,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-  },
-  resultId: { color: colors.accent, fontSize: 12, fontWeight: '800' },
-  resultTitle: { color: colors.ink, fontSize: 15, marginTop: 5, lineHeight: 20 },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.canvas },
+    eyebrow: {
+      color: colors.accent,
+      fontSize: 12,
+      fontWeight: '800',
+      letterSpacing: 0.8,
+      marginHorizontal: 22,
+      marginTop: 20,
+      marginBottom: 26,
+    },
+    label: {
+      color: colors.ink,
+      fontSize: 13,
+      fontWeight: '700',
+      marginHorizontal: 22,
+      marginBottom: 9,
+    },
+    scroll: { flexGrow: 0, marginBottom: 22 },
+    options: { paddingHorizontal: 22, gap: 7 },
+    option: {
+      backgroundColor: colors.surface,
+      borderRadius: 13,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+    },
+    active: { backgroundColor: colors.ink },
+    optionText: { color: colors.ink, fontSize: 13, fontWeight: '600' },
+    activeText: { color: colors.onAccent },
+    search: {
+      marginHorizontal: 22,
+      marginBottom: 16,
+      backgroundColor: colors.surface,
+      borderRadius: 14,
+      paddingHorizontal: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    input: { flex: 1, height: 48, fontSize: 15, color: colors.ink },
+    go: { color: colors.accent, fontSize: 13, fontWeight: '700' },
+    result: {
+      backgroundColor: colors.surface,
+      paddingHorizontal: 22,
+      paddingVertical: 15,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.line,
+    },
+    resultId: { color: colors.accent, fontSize: 12, fontWeight: '800' },
+    resultTitle: { color: colors.ink, fontSize: 15, marginTop: 5, lineHeight: 20 },
+  });

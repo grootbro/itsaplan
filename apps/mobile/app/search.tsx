@@ -5,9 +5,9 @@ import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } fr
 import { api } from '@/lib/api';
 import type { IssueSearchHit, Project } from '@/lib/types';
 import { useProjectScope } from '@/lib/project-scope';
-import { EmptyState, Loading, ScreenTitle } from '@/ui/primitives';
+import { EmptyState, Loading } from '@/ui/primitives';
 import { IssueRow } from '@/ui/IssueRow';
-import { colors } from '@/ui/theme';
+import { useColors, useThemedStyles, type Palette } from '@/ui/theme';
 import { Notice } from '@/ui/work-controls';
 
 type SearchResult = IssueSearchHit & { projectKey: string };
@@ -41,6 +41,8 @@ async function searchProjects(
 }
 
 export default function Search() {
+  const colors = useColors();
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { projectKey, selectProject } = useProjectScope();
   const [term, setTerm] = useState('');
@@ -69,7 +71,6 @@ export default function Search() {
 
   return (
     <View style={styles.screen}>
-      <ScreenTitle title="Search" />
       <View style={styles.inputWrap}>
         <TextInput
           accessibilityLabel="Search issues"
@@ -165,35 +166,36 @@ export default function Search() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  inputWrap: {
-    marginHorizontal: 22,
-    backgroundColor: colors.surface,
-    borderColor: colors.line,
-    borderWidth: 1,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-  },
-  input: { flex: 1, minHeight: 49, color: colors.ink, fontSize: 15 },
-  go: { color: colors.accent, fontWeight: '700', padding: 14, minHeight: 48 },
-  projects: { paddingHorizontal: 22, paddingVertical: 15, gap: 7 },
-  project: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 13,
-    paddingVertical: 13,
-    minHeight: 48,
-  },
-  selectedProject: { backgroundColor: colors.ink },
-  projectText: { color: colors.ink, fontSize: 12, fontWeight: '700' },
-  selectedText: { color: '#FFFFFF' },
-  partial: {
-    color: colors.muted,
-    fontSize: 12,
-    paddingHorizontal: 22,
-    paddingVertical: 10,
-  },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.canvas },
+    inputWrap: {
+      marginHorizontal: 22,
+      backgroundColor: colors.surface,
+      borderColor: colors.line,
+      borderWidth: 1,
+      borderRadius: 14,
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 14,
+    },
+    input: { flex: 1, minHeight: 49, color: colors.ink, fontSize: 15 },
+    go: { color: colors.accent, fontWeight: '700', padding: 14, minHeight: 48 },
+    projects: { paddingHorizontal: 22, paddingVertical: 15, gap: 7 },
+    project: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      paddingHorizontal: 13,
+      paddingVertical: 13,
+      minHeight: 48,
+    },
+    selectedProject: { backgroundColor: colors.ink },
+    projectText: { color: colors.ink, fontSize: 12, fontWeight: '700' },
+    selectedText: { color: colors.onAccent },
+    partial: {
+      color: colors.muted,
+      fontSize: 12,
+      paddingHorizontal: 22,
+      paddingVertical: 10,
+    },
+  });

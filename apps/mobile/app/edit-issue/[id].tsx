@@ -1,14 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import * as Haptics from 'expo-haptics';
+import { useSuccessHaptic } from '@/lib/preferences-context';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '@/lib/api';
 import type { Priority } from '@/lib/types';
 import { validDate } from '@/lib/validation';
 import { Action, EmptyState, Field, Loading } from '@/ui/primitives';
 import { DateField } from '@/ui/DateField';
-import { colors } from '@/ui/theme';
+import { useThemedStyles, type Palette } from '@/ui/theme';
 
 const priorities: { label: string; value: Priority }[] = [
   { label: 'None', value: null },
@@ -19,6 +19,8 @@ const priorities: { label: string; value: Priority }[] = [
 ];
 
 export default function EditIssue() {
+  const successHaptic = useSuccessHaptic();
+  const styles = useThemedStyles(createStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const issueId = Number(id);
   const router = useRouter();
@@ -103,7 +105,7 @@ export default function EditIssue() {
         ...(initiativeId !== (issue.data?.initiative?.id ?? null) ? { initiativeId } : {}),
       }),
     onSuccess: async () => {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      successHaptic();
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['issue', issueId] }),
         queryClient.invalidateQueries({ queryKey: ['issues', project?.key] }),
@@ -301,30 +303,31 @@ export default function EditIssue() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  content: { padding: 22, paddingBottom: 50 },
-  eyebrow: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: 26,
-  },
-  label: {
-    color: colors.ink,
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 10,
-  },
-  options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
-  option: {
-    backgroundColor: colors.surface,
-    paddingHorizontal: 13,
-    paddingVertical: 10,
-    borderRadius: 13,
-  },
-  active: { backgroundColor: colors.ink },
-  optionText: { color: colors.ink, fontSize: 13, fontWeight: '600' },
-  activeText: { color: '#FFFFFF' },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.canvas },
+    content: { padding: 22, paddingBottom: 50 },
+    eyebrow: {
+      color: colors.accent,
+      fontSize: 12,
+      fontWeight: '800',
+      letterSpacing: 1,
+      marginBottom: 26,
+    },
+    label: {
+      color: colors.ink,
+      fontSize: 13,
+      fontWeight: '700',
+      marginBottom: 10,
+    },
+    options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 },
+    option: {
+      backgroundColor: colors.surface,
+      paddingHorizontal: 13,
+      paddingVertical: 10,
+      borderRadius: 13,
+    },
+    active: { backgroundColor: colors.ink },
+    optionText: { color: colors.ink, fontSize: 13, fontWeight: '600' },
+    activeText: { color: colors.onAccent },
+  });

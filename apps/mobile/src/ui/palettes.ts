@@ -1,0 +1,31 @@
+export const lightColors = {
+  canvas: '#F9F9F9',
+  surface: '#FEFEFE',
+  ink: '#242424',
+  muted: '#646464',
+  line: '#E8E8E8',
+  accent: '#242424',
+  onAccent: '#FFFFFF',
+  accentSoft: '#F0F0F0',
+  danger: '#C44343',
+  urgent: '#C44343',
+  high: '#9A4F1E',
+  medium: '#78600B',
+  low: '#436D77',
+};
+export type Palette = typeof lightColors;
+export const darkColors: Palette = {
+  canvas: '#141414',
+  surface: '#1E1E1E',
+  ink: '#F1F1F1',
+  muted: '#ADADAD',
+  line: '#363636',
+  accent: '#F1F1F1',
+  onAccent: '#181818',
+  accentSoft: '#2A2A2A',
+  danger: '#FF9898',
+  urgent: '#FF9898',
+  high: '#F1B58A',
+  medium: '#DCC678',
+  low: '#97C7D2',
+};

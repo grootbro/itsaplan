@@ -1,16 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import * as Haptics from 'expo-haptics';
+import { useSuccessHaptic } from '@/lib/preferences-context';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '@/lib/api';
 import type { Priority } from '@/lib/types';
 import { validDate } from '@/lib/validation';
 import { Action, EmptyState, Field, Loading } from '@/ui/primitives';
 import { DateField } from '@/ui/DateField';
-import { colors } from '@/ui/theme';
+import { useColors, useThemedStyles, type Palette } from '@/ui/theme';
 
 export default function NewIssue() {
+  const successHaptic = useSuccessHaptic();
+  const colors = useColors();
+  const styles = useThemedStyles(createStyles);
   const { key, parentId } = useLocalSearchParams<{
     key: string;
     parentId?: string;
@@ -67,7 +70,7 @@ export default function NewIssue() {
         ...(initiativeId ? { initiativeId } : {}),
       }),
     onSuccess: async (issue) => {
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      successHaptic();
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['issues', key] }),
         queryClient.invalidateQueries({ queryKey: ['assigned'] }),
@@ -126,7 +129,7 @@ export default function NewIssue() {
               >
                 <Text
                   style={{
-                    color: selectedType === type.id ? '#FFFFFF' : colors.ink,
+                    color: selectedType === type.id ? colors.onAccent : colors.ink,
                     fontSize: 13,
                     fontWeight: '600',
                   }}
@@ -149,7 +152,7 @@ export default function NewIssue() {
           >
             <Text
               style={{
-                color: selected === column.id ? '#FFFFFF' : colors.ink,
+                color: selected === column.id ? colors.onAccent : colors.ink,
                 fontSize: 13,
                 fontWeight: '600',
               }}
@@ -173,7 +176,7 @@ export default function NewIssue() {
             >
               <Text
                 style={{
-                  color: selected ? '#FFFFFF' : colors.ink,
+                  color: selected ? colors.onAccent : colors.ink,
                   fontSize: 13,
                   fontWeight: '600',
                   textTransform: 'capitalize',
@@ -192,7 +195,7 @@ export default function NewIssue() {
           onPress={() => setAssigneeUserId(null)}
           style={[styles.state, assigneeUserId === null && styles.selected]}
         >
-          <Text style={{ color: assigneeUserId === null ? '#FFFFFF' : colors.ink }}>
+          <Text style={{ color: assigneeUserId === null ? colors.onAccent : colors.ink }}>
             Unassigned
           </Text>
         </Pressable>
@@ -207,7 +210,7 @@ export default function NewIssue() {
             >
               <Text
                 style={{
-                  color: assigneeUserId === item.userId ? '#FFFFFF' : colors.ink,
+                  color: assigneeUserId === item.userId ? colors.onAccent : colors.ink,
                 }}
               >
                 {item.name}
@@ -233,7 +236,9 @@ export default function NewIssue() {
                   }
                   style={[styles.state, selected && styles.selected]}
                 >
-                  <Text style={{ color: selected ? '#FFFFFF' : colors.ink }}>{label.name}</Text>
+                  <Text style={{ color: selected ? colors.onAccent : colors.ink }}>
+                    {label.name}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -250,7 +255,9 @@ export default function NewIssue() {
               onPress={() => setCycleId(null)}
               style={[styles.state, cycleId === null && styles.selected]}
             >
-              <Text style={{ color: cycleId === null ? '#FFFFFF' : colors.ink }}>No cycle</Text>
+              <Text style={{ color: cycleId === null ? colors.onAccent : colors.ink }}>
+                No cycle
+              </Text>
             </Pressable>
             {cycles.data?.map((cycle) => (
               <Pressable
@@ -261,7 +268,7 @@ export default function NewIssue() {
               >
                 <Text
                   style={{
-                    color: cycleId === cycle.id ? '#FFFFFF' : colors.ink,
+                    color: cycleId === cycle.id ? colors.onAccent : colors.ink,
                   }}
                 >
                   {cycle.name}
@@ -282,7 +289,7 @@ export default function NewIssue() {
             >
               <Text
                 style={{
-                  color: initiativeId === null ? '#FFFFFF' : colors.ink,
+                  color: initiativeId === null ? colors.onAccent : colors.ink,
                 }}
               >
                 No initiative
@@ -297,7 +304,7 @@ export default function NewIssue() {
               >
                 <Text
                   style={{
-                    color: initiativeId === initiative.id ? '#FFFFFF' : colors.ink,
+                    color: initiativeId === initiative.id ? colors.onAccent : colors.ink,
                   }}
                 >
                   {initiative.title}
@@ -316,28 +323,29 @@ export default function NewIssue() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  content: { padding: 22, paddingBottom: 50 },
-  eyebrow: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: '800',
-    letterSpacing: 1,
-    marginBottom: 28,
-  },
-  label: {
-    color: colors.ink,
-    fontSize: 13,
-    fontWeight: '700',
-    marginBottom: 10,
-  },
-  states: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 30 },
-  state: {
-    backgroundColor: colors.surface,
-    borderRadius: 15,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  selected: { backgroundColor: colors.ink },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.canvas },
+    content: { padding: 22, paddingBottom: 50 },
+    eyebrow: {
+      color: colors.accent,
+      fontSize: 12,
+      fontWeight: '800',
+      letterSpacing: 1,
+      marginBottom: 28,
+    },
+    label: {
+      color: colors.ink,
+      fontSize: 13,
+      fontWeight: '700',
+      marginBottom: 10,
+    },
+    states: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 30 },
+    state: {
+      backgroundColor: colors.surface,
+      borderRadius: 15,
+      paddingHorizontal: 14,
+      paddingVertical: 10,
+    },
+    selected: { backgroundColor: colors.ink },
+  });

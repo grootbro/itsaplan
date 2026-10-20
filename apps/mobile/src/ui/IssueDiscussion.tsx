@@ -6,7 +6,7 @@ import { activityRows, canManageEntry } from '@/lib/collaboration';
 import type { FeedItem } from '@/lib/types';
 import { Action, Loading } from './primitives';
 import { Choices, NativeSheet, Notice } from './work-controls';
-import { colors } from './theme';
+import { useColors, useThemedStyles, type Palette } from './theme';
 
 type Composer = { mode: 'new' | 'reply' | 'edit'; target?: FeedItem };
 export function IssueDiscussion({
@@ -20,6 +20,8 @@ export function IssueDiscussion({
   owner: boolean;
   userId?: string;
 }) {
+  const colors = useColors();
+  const styles = useThemedStyles(createStyles);
   const client = useQueryClient();
   const [mode, setMode] = useState<'all' | 'comments'>('all');
   const [composer, setComposer] = useState<Composer | null>(null);
@@ -230,50 +232,51 @@ export function IssueDiscussion({
     </View>
   );
 }
-const styles = StyleSheet.create({
-  section: {
-    marginTop: 32,
-    paddingTop: 20,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.line,
-  },
-  heading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 10,
-  },
-  title: { color: colors.ink, fontSize: 18, fontWeight: '600' },
-  button: { minHeight: 48, minWidth: 48, paddingHorizontal: 10, justifyContent: 'center' },
-  buttonText: { color: colors.ink, fontSize: 15, fontWeight: '600' },
-  danger: { color: colors.danger, fontSize: 15 },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  entry: {
-    paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.line,
-  },
-  meta: { color: colors.muted, fontSize: 13, lineHeight: 20 },
-  body: { color: colors.ink, fontSize: 16, lineHeight: 25, marginTop: 7 },
-  muted: { color: colors.muted, fontSize: 15, lineHeight: 22 },
-  quote: {
-    backgroundColor: colors.accentSoft,
-    borderRadius: 12,
-    padding: 14,
-    gap: 5,
-    marginBottom: 18,
-  },
-  editor: {
-    color: colors.ink,
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    minHeight: 170,
-    fontSize: 17,
-    lineHeight: 25,
-    textAlignVertical: 'top',
-  },
-  hint: { color: colors.muted, fontSize: 13, lineHeight: 20, marginVertical: 14 },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    section: {
+      marginTop: 32,
+      paddingTop: 20,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.line,
+    },
+    heading: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      flexWrap: 'wrap',
+      gap: 8,
+      marginBottom: 10,
+    },
+    title: { color: colors.ink, fontSize: 18, fontWeight: '600' },
+    button: { minHeight: 48, minWidth: 48, paddingHorizontal: 10, justifyContent: 'center' },
+    buttonText: { color: colors.ink, fontSize: 15, fontWeight: '600' },
+    danger: { color: colors.danger, fontSize: 15 },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    entry: {
+      paddingVertical: 16,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: colors.line,
+    },
+    meta: { color: colors.muted, fontSize: 13, lineHeight: 20 },
+    body: { color: colors.ink, fontSize: 16, lineHeight: 25, marginTop: 7 },
+    muted: { color: colors.muted, fontSize: 15, lineHeight: 22 },
+    quote: {
+      backgroundColor: colors.accentSoft,
+      borderRadius: 12,
+      padding: 14,
+      gap: 5,
+      marginBottom: 18,
+    },
+    editor: {
+      color: colors.ink,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: 16,
+      minHeight: 170,
+      fontSize: 17,
+      lineHeight: 25,
+      textAlignVertical: 'top',
+    },
+    hint: { color: colors.muted, fontSize: 13, lineHeight: 20, marginVertical: 14 },
+  });

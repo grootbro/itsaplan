@@ -28,10 +28,13 @@ import { Action, EmptyState, Loading } from '@/ui/primitives';
 import { IssueRow } from '@/ui/IssueRow';
 import { IssueActions } from '@/ui/IssueActions';
 import { IssueFilters } from '@/ui/IssueFilters';
-import { Notice, SearchInput, workStyles } from '@/ui/work-controls';
-import { colors } from '@/ui/theme';
+import { Notice, SearchInput, useWorkStyles } from '@/ui/work-controls';
+import { useColors, useThemedStyles, type Palette } from '@/ui/theme';
 
 export default function Project() {
+  const colors = useColors();
+  const styles = useThemedStyles(createStyles);
+  const workStyles = useWorkStyles();
   const { key } = useLocalSearchParams<{ key: string }>();
   const router = useRouter();
   const navigation = useNavigation();
@@ -287,7 +290,7 @@ export default function Project() {
           onPress={() => router.push(`/new-issue/${key}`)}
           style={[styles.fab, { bottom: insets.bottom + 20 }]}
         >
-          <Ionicons name="add" size={24} color="#FFFFFF" />
+          <Ionicons name="add" size={24} color={colors.onAccent} />
           <Text style={styles.fabLabel}>New issue</Text>
         </Pressable>
       ) : null}
@@ -319,37 +322,38 @@ export default function Project() {
   );
 }
 
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  summary: { paddingHorizontal: 22, paddingTop: 12, paddingBottom: 22 },
-  subtitle: { color: colors.muted, fontSize: 14, marginBottom: 8 },
-  title: { color: colors.ink, fontSize: 30, fontWeight: '700', letterSpacing: -0.7 },
-  meta: { color: colors.muted, fontSize: 14, marginTop: 6 },
-  displayRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  filterButton: { flexDirection: 'row', alignItems: 'center', minHeight: 48, gap: 8 },
-  states: { paddingHorizontal: 22, paddingBottom: 12, gap: 8 },
-  state: {
-    minHeight: 48,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    justifyContent: 'center',
-    backgroundColor: colors.accentSoft,
-  },
-  stateSelected: { backgroundColor: colors.ink },
-  stateLabel: { color: colors.ink, fontSize: 15 },
-  stateLabelSelected: { color: '#FFFFFF', fontWeight: '600' },
-  fab: {
-    position: 'absolute',
-    right: 22,
-    bottom: 20,
-    backgroundColor: colors.ink,
-    minHeight: 52,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  fabLabel: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.canvas },
+    summary: { paddingHorizontal: 22, paddingTop: 12, paddingBottom: 22 },
+    subtitle: { color: colors.muted, fontSize: 14, marginBottom: 8 },
+    title: { color: colors.ink, fontSize: 30, fontWeight: '700', letterSpacing: -0.7 },
+    meta: { color: colors.muted, fontSize: 14, marginTop: 6 },
+    displayRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    filterButton: { flexDirection: 'row', alignItems: 'center', minHeight: 48, gap: 8 },
+    states: { paddingHorizontal: 22, paddingBottom: 12, gap: 8 },
+    state: {
+      minHeight: 48,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      justifyContent: 'center',
+      backgroundColor: colors.accentSoft,
+    },
+    stateSelected: { backgroundColor: colors.ink },
+    stateLabel: { color: colors.ink, fontSize: 15 },
+    stateLabelSelected: { color: colors.onAccent, fontWeight: '600' },
+    fab: {
+      position: 'absolute',
+      right: 22,
+      bottom: 20,
+      backgroundColor: colors.ink,
+      minHeight: 52,
+      paddingHorizontal: 20,
+      borderRadius: 16,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    fabLabel: { color: colors.onAccent, fontSize: 16, fontWeight: '600' },
+  });

@@ -4,9 +4,10 @@ import { Alert, ScrollView, StyleSheet } from 'react-native';
 import { api } from '@/lib/api';
 import { WorklogForm } from '@/ui/WorklogForm';
 import { EmptyState } from '@/ui/primitives';
-import { colors } from '@/ui/theme';
+import { useThemedStyles, type Palette } from '@/ui/theme';
 
 export default function LogTime() {
+  const styles = useThemedStyles(createStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const issueId = Number(id);
   const router = useRouter();
@@ -37,7 +38,8 @@ export default function LogTime() {
     </ScrollView>
   );
 }
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.canvas },
-  content: { padding: 22, paddingBottom: 50 },
-});
+const createStyles = (colors: Palette) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: colors.canvas },
+    content: { padding: 22, paddingBottom: 50 },
+  });

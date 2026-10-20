@@ -6,10 +6,11 @@ import { api } from '@/lib/api';
 import { inboxProjectId, resolveInboxScope } from '@/lib/inbox-scope';
 import { useProjectScope } from '@/lib/project-scope';
 import { Loading } from '@/ui/primitives';
-import { colors } from '@/ui/theme';
+import { useColors } from '@/ui/theme';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
+  const colors = useColors();
   const { data, isPending } = authClient.useSession();
   const { projectKey, inboxAll } = useProjectScope();
   const projects = useQuery({
@@ -67,15 +68,6 @@ export default function TabLayout() {
             tabBarBadge: scope !== null ? unread.data?.unread || undefined : undefined,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="mail-unread-outline" color={color} size={size} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="search"
-          options={{
-            title: 'Search',
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="search-outline" color={color} size={size} />
             ),
           }}
         />

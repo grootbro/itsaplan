@@ -1,3 +1,4 @@
+import { SearchButton } from '@/ui/SearchButton';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -8,8 +9,8 @@ import { defaultFilters, dueGroup, visibleIssues, type IssueSort } from '@/lib/i
 import type { IssueSearchHit } from '@/lib/types';
 import { Action, EmptyState, Loading, ScreenTitle } from '@/ui/primitives';
 import { IssueRow } from '@/ui/IssueRow';
-import { Choices, NativeSheet, Notice, SearchInput, workStyles } from '@/ui/work-controls';
-import { colors } from '@/ui/theme';
+import { Choices, NativeSheet, Notice, SearchInput, useWorkStyles } from '@/ui/work-controls';
+import { useColors } from '@/ui/theme';
 
 type AssignedIssue = IssueSearchHit & {
   projectKey: string;
@@ -21,6 +22,8 @@ type AssignedIssue = IssueSearchHit & {
 };
 
 export default function MyWork() {
+  const colors = useColors();
+  const workStyles = useWorkStyles();
   const router = useRouter();
   const session = authClient.useSession();
   const userId = session.data?.user.id;
@@ -117,7 +120,11 @@ export default function MyWork() {
   const initialError = (projects.isError && !projects.data) || (assigned.isError && !assigned.data);
   const header = (
     <>
-      <ScreenTitle title="My work" eyebrow="Assigned to you, across your projects" />
+      <ScreenTitle
+        action={<SearchButton />}
+        title="My work"
+        eyebrow="Assigned to you, across your projects"
+      />
       <View style={workStyles.toolbar}>
         <SearchInput value={term} onChange={setTerm} placeholder="Find in your assigned work" />
         <Pressable

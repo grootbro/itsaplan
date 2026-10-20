@@ -194,3 +194,9 @@ readiness are unresolved. No builds, tests, lint, typecheck, detector, server,
 simulator, screenshot or device QA was run. A web design detector does not apply to
 these native components. The sidecar's HTML previews are illustrative translations,
 not rendered native evidence or additional implementation tokens.
+
+## Appearance and account
+
+The native app supports System, Light and Dark appearance. The dark palette uses a #141414 canvas, #1E1E1E surfaces, #F1F1F1 text and #ADADAD secondary text. Selected controls invert their foreground through onAccent. All native styles resolve from the active palette; navigation, status bar, keyboards and date pickers follow the same choice.
+
+The You screen groups device preferences separately from account actions. Appearance, launch destination and haptics persist locally. Profile name and password use the existing shared account API. Search opens from workspace headers; the bottom bar contains My work, Projects, Inbox and You.
