@@ -107,8 +107,9 @@ uses urgent, high, medium and low. Issue status dots use API-provided state colo
 **The Functional Color Rule.** Pair priority and status colors with visible text;
 color alone must not carry their meaning.
 
-Values above mirror `theme.ts`; on-accent records the repeated white literal in
-components. Contrast has not been measured for this native extension.
+Values above describe the light palette; `src/ui/palettes.ts` defines both palettes.
+Use onAccent for selected controls rather than literal white. Contrast has not been
+measured on a device for this native extension.
 
 ## Typography
 
@@ -126,8 +127,9 @@ Device validation of large text remains outstanding.
 
 ## Layout
 
-Use a portrait, single-column workspace with 22 logical units of horizontal content
-padding. `space` exposes the five spacing values above; components also use local
+Use a single-column workspace on compact windows, with 22 logical units of horizontal
+content padding. Regular iPad workspaces follow the adaptive layout below. `space`
+exposes the five spacing values above; components also use local
 gaps and padding. Lists use native `SectionList`, with the summary, search, display
 controls and state choices inside the scrollable list header. Section headings do
 not stick. Metadata wraps within an issue row.
@@ -162,8 +164,9 @@ the list width. Avoid enclosing each issue or control group in a decorative card
 - **SearchInput:** soft fill, search icon, named input and a labeled 48-unit clear
   action when nonempty. Search remains in the scrolling list header.
 - **Choices:** horizontally scrollable options with label-derived accessible names
-  and selected state. Selection uses ink fill and a white semibold label.
-- **NativeSheet:** React Native `Modal` with `pageSheet`, `animationType="none"`,
+  and selected state. Selection uses ink fill and an onAccent semibold label.
+- **NativeSheet:** React Native `Modal` with `formSheet` on regular windows and
+  `pageSheet` on compact windows, `animationType="none"`,
   safe-area content, title header, Done and scrollable body. This rule applies to
   this component; route-based editor modals use Expo Router's native presentation.
 - **IssueRow:** identifier, textual state and dot, title, then priority, due date
@@ -172,8 +175,9 @@ the list width. Avoid enclosing each issue or control group in a decorative card
   Long press supplements this visible action. Pressed rows use accentSoft.
 - **Notice / EmptyState / Loading:** direct text, retry where applicable and native
   activity indication. Refresh errors preserve loaded content and explain its state.
-- **Navigation:** Expo Router stack plus My work, Projects, Inbox, Search and You
-  tabs. Use Ionicons and native navigation affordances consistently.
+- **Navigation:** Expo Router stack plus My work, Projects, Inbox and You. Search
+  opens from workspace headers. Regular windows use a sidebar; compact windows use
+  bottom tabs. Use Ionicons and native navigation affordances consistently.
 
 ## Do's and Don'ts
 
@@ -187,13 +191,13 @@ the list width. Avoid enclosing each issue or control group in a decorative card
 - Don't add decorative cards, custom sheet motion or display fonts.
 - Don't claim dark appearance, Android readiness or device accessibility is verified.
 
-Source evidence: `theme.ts`, `primitives.tsx`, `work-controls.tsx`, `IssueRow.tsx`,
-project/My work lists, navigation layouts and `app.config.ts`. Configuration selects
-light appearance and iOS phone release intent; Android release identifiers and
-readiness are unresolved. No builds, tests, lint, typecheck, detector, server,
-simulator, screenshot or device QA was run. A web design detector does not apply to
-these native components. The sidecar's HTML previews are illustrative translations,
-not rendered native evidence or additional implementation tokens.
+Source evidence: `theme.ts`, `palettes.ts`, `primitives.tsx`, `work-controls.tsx`,
+`IssueRow.tsx`, `IssueWorkspace.tsx`, navigation layouts and `app.config.ts`. The
+release targets iPhone and iPad with automatic appearance. Android release readiness
+remains unresolved. Cloud CI and native build outcomes are recorded in the release
+report; device and Simulator UI acceptance remains outstanding. A web design
+detector does not apply to these native components. The sidecar's HTML previews are
+illustrative translations, not rendered native evidence or implementation tokens.
 
 ## Appearance and account
 
