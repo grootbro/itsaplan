@@ -49,6 +49,9 @@ jobs:
       - name: Audit dependencies
         run: bun audit --audit-level=high
 
+      - name: Mobile Inbox scope tests
+        run: bun --cwd apps/mobile run test
+
       - name: Script tests
         run: bun test scripts/
 

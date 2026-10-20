@@ -1,0 +1,36 @@
+{
+  "cli": { "version": ">= 16.0.0", "appVersionSource": "local" },
+  "build": {
+    "simulator": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://plan-api.sekta.work",
+        "IOS_BUNDLE_IDENTIFIER": "com.ravefox.plan.simulator"
+      },
+      "ios": { "simulator": true, "resourceClass": "m-medium" }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://plan-api.sekta.work",
+        "IOS_BUNDLE_IDENTIFIER": "com.ravefox.plan"
+      },
+      "ios": { "resourceClass": "m-medium" }
+    },
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://plan-api.sekta.work",
+        "IOS_BUNDLE_IDENTIFIER": "com.ravefox.plan"
+      },
+      "ios": { "resourceClass": "m-medium" }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6815839243",
+        "appleTeamId": "98DZR7TUF8"
+      }
+    }
+  }
+}
