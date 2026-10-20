@@ -1,5 +1,5 @@
+import { IssueWorkspace, useIssueWorkspace } from '@/ui/IssueWorkspace';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
 import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { api } from '@/lib/api';
 import { inboxProjectId, resolveInboxScope, type InboxScope } from '@/lib/inbox-scope';
@@ -8,9 +8,9 @@ import { Action, EmptyState, Loading, ScreenTitle } from '@/ui/primitives';
 import { useColors, useThemedStyles, type Palette } from '@/ui/theme';
 
 export default function Inbox() {
+  const workspace = useIssueWorkspace();
   const colors = useColors();
   const styles = useThemedStyles(createStyles);
-  const router = useRouter();
   const queryClient = useQueryClient();
   const { projectKey, inboxAll, setInboxAll } = useProjectScope();
   const projects = useQuery({ queryKey: ['projects'], queryFn: api.projects });
@@ -47,143 +47,158 @@ export default function Inbox() {
   });
 
   return (
-    <View style={styles.screen}>
-      <ScreenTitle
-        title="Inbox"
-        eyebrow={ready && unread.data ? `${unread.data.unread} unread` : 'Updates'}
-        action={
-          ready && unread.data?.unread ? (
-            <Pressable
-              accessibilityRole="button"
-              disabled={markAll.isPending}
-              accessibilityState={{ disabled: markAll.isPending, busy: markAll.isPending }}
-              onPress={() => {
-                if (scope !== null && !markAll.isPending) markAll.mutate(scope);
-              }}
-            >
-              <Text style={styles.markAll}>{markAll.isPending ? 'Marking read…' : 'Read all'}</Text>
-            </Pressable>
-          ) : undefined
-        }
-      />
-      <View style={styles.scope}>
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => setInboxAll(true)}
-          style={[styles.scopeOption, inboxAll && styles.scopeActive]}
-        >
-          <Text style={[styles.scopeText, inboxAll && styles.scopeTextActive]}>All projects</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={!project}
-          onPress={() => setInboxAll(false)}
-          style={[
-            styles.scopeOption,
-            !inboxAll && styles.scopeActive,
-            !project && { opacity: 0.45 },
-          ]}
-        >
-          <Text style={[styles.scopeText, !inboxAll && styles.scopeTextActive]}>
-            {project?.name ?? 'This project'}
-          </Text>
-        </Pressable>
-      </View>
-      {!inboxAll && projects.isPending ? (
-        <Loading />
-      ) : !inboxAll && projects.isError && !projects.data ? (
-        <View style={{ flex: 1 }}>
-          <EmptyState title="Projects unavailable" detail="Retry to load your selected project." />
-          <Action label="Retry" onPress={() => void projects.refetch()} />
-        </View>
-      ) : !ready ? (
-        <EmptyState
-          title="Choose a project"
-          detail="Open a project first, or switch to all projects."
-        />
-      ) : inbox.isLoading ? (
-        <Loading />
-      ) : inbox.isError && !inbox.data ? (
-        <View style={{ flex: 1 }}>
-          <EmptyState title="Inbox unavailable" detail="Check your connection and retry." />
-          <Action
-            label="Retry"
-            onPress={() => void Promise.all([inbox.refetch(), unread.refetch()])}
-          />
-        </View>
-      ) : (
-        <FlatList
-          data={inbox.data?.pages.flatMap((page) => page.items) ?? []}
-          keyExtractor={(item) => String(item.id)}
-          refreshControl={
-            <RefreshControl
-              refreshing={inbox.isRefetching}
-              onRefresh={() => void Promise.all([inbox.refetch(), unread.refetch()])}
-              tintColor={colors.accent}
-            />
+    <IssueWorkspace workspace={workspace}>
+      <View style={styles.screen}>
+        <ScreenTitle
+          title="Inbox"
+          eyebrow={ready && unread.data ? `${unread.data.unread} unread` : 'Updates'}
+          action={
+            ready && unread.data?.unread ? (
+              <Pressable
+                accessibilityRole="button"
+                disabled={markAll.isPending}
+                accessibilityState={{ disabled: markAll.isPending, busy: markAll.isPending }}
+                onPress={() => {
+                  if (scope !== null && !markAll.isPending) markAll.mutate(scope);
+                }}
+              >
+                <Text style={styles.markAll}>
+                  {markAll.isPending ? 'Marking read…' : 'Read all'}
+                </Text>
+              </Pressable>
+            ) : undefined
           }
-          onEndReached={() => {
-            if (inbox.hasNextPage && !inbox.isFetching && !inbox.isFetchNextPageError)
-              void inbox.fetchNextPage();
-          }}
-          onEndReachedThreshold={0.4}
-          contentContainerStyle={styles.list}
-          ListEmptyComponent={
+        />
+        <View style={styles.scope}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => setInboxAll(true)}
+            style={[styles.scopeOption, inboxAll && styles.scopeActive]}
+          >
+            <Text style={[styles.scopeText, inboxAll && styles.scopeTextActive]}>All projects</Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            disabled={!project}
+            onPress={() => setInboxAll(false)}
+            style={[
+              styles.scopeOption,
+              !inboxAll && styles.scopeActive,
+              !project && { opacity: 0.45 },
+            ]}
+          >
+            <Text style={[styles.scopeText, !inboxAll && styles.scopeTextActive]}>
+              {project?.name ?? 'This project'}
+            </Text>
+          </Pressable>
+        </View>
+        {!inboxAll && projects.isPending ? (
+          <Loading />
+        ) : !inboxAll && projects.isError && !projects.data ? (
+          <View style={{ flex: 1 }}>
             <EmptyState
-              title="You're all caught up"
-              detail="New work and mentions will appear here."
+              title="Projects unavailable"
+              detail="Retry to load your selected project."
             />
-          }
-          ListHeaderComponent={
-            <View>
-              {!inboxAll && projects.isError ? (
-                <Action
-                  label="Could not refresh projects. Retry"
-                  onPress={() => void projects.refetch()}
-                />
-              ) : null}
-              {inbox.isRefetchError ? (
-                <Action label="Could not refresh. Retry" onPress={() => void inbox.refetch()} />
-              ) : null}
-            </View>
-          }
-          ListFooterComponent={
-            <View>
-              {inbox.isFetchingNextPage ? <Loading /> : null}
-              {inbox.isFetchNextPageError ? (
-                <Action
-                  label="Could not load more. Retry"
-                  onPress={() => void inbox.fetchNextPage()}
-                />
-              ) : null}
-            </View>
-          }
-          renderItem={({ item }) => (
-            <Pressable
-              style={[styles.item, !item.readAt && styles.unreadItem]}
-              onPress={() => {
-                if (!item.readAt) markRead.mutate(item.id);
-                router.push(`/issue/${item.issueId}`);
-              }}
-              accessibilityRole="button"
-            >
-              <View style={[styles.dot, item.readAt && styles.readDot]} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.context}>
-                  {item.projectKey} · {item.type.replaceAll('_', ' ')}
-                </Text>
-                <Text style={[styles.title, !item.readAt && styles.unreadTitle]} numberOfLines={2}>
-                  {item.issueTitle}
-                </Text>
-                <Text style={styles.detail}>
-                  {item.actorName ?? 'Workspace'} · {new Date(item.createdAt).toLocaleDateString()}
-                </Text>
+            <Action label="Retry" onPress={() => void projects.refetch()} />
+          </View>
+        ) : !ready ? (
+          <EmptyState
+            title="Choose a project"
+            detail="Open a project first, or switch to all projects."
+          />
+        ) : inbox.isLoading ? (
+          <Loading />
+        ) : inbox.isError && !inbox.data ? (
+          <View style={{ flex: 1 }}>
+            <EmptyState title="Inbox unavailable" detail="Check your connection and retry." />
+            <Action
+              label="Retry"
+              onPress={() => void Promise.all([inbox.refetch(), unread.refetch()])}
+            />
+          </View>
+        ) : (
+          <FlatList
+            data={inbox.data?.pages.flatMap((page) => page.items) ?? []}
+            keyExtractor={(item) => String(item.id)}
+            refreshControl={
+              <RefreshControl
+                refreshing={inbox.isRefetching}
+                onRefresh={() => void Promise.all([inbox.refetch(), unread.refetch()])}
+                tintColor={colors.accent}
+              />
+            }
+            onEndReached={() => {
+              if (inbox.hasNextPage && !inbox.isFetching && !inbox.isFetchNextPageError)
+                void inbox.fetchNextPage();
+            }}
+            onEndReachedThreshold={0.4}
+            contentContainerStyle={styles.list}
+            ListEmptyComponent={
+              <EmptyState
+                title="You're all caught up"
+                detail="New work and mentions will appear here."
+              />
+            }
+            ListHeaderComponent={
+              <View>
+                {!inboxAll && projects.isError ? (
+                  <Action
+                    label="Could not refresh projects. Retry"
+                    onPress={() => void projects.refetch()}
+                  />
+                ) : null}
+                {inbox.isRefetchError ? (
+                  <Action label="Could not refresh. Retry" onPress={() => void inbox.refetch()} />
+                ) : null}
               </View>
-            </Pressable>
-          )}
-        />
-      )}
-    </View>
+            }
+            ListFooterComponent={
+              <View>
+                {inbox.isFetchingNextPage ? <Loading /> : null}
+                {inbox.isFetchNextPageError ? (
+                  <Action
+                    label="Could not load more. Retry"
+                    onPress={() => void inbox.fetchNextPage()}
+                  />
+                ) : null}
+              </View>
+            }
+            renderItem={({ item }) => (
+              <Pressable
+                style={[
+                  styles.item,
+                  !item.readAt && styles.unreadItem,
+                  workspace.selectedId === item.issueId && { backgroundColor: colors.accentSoft },
+                ]}
+                onPress={() => {
+                  if (!item.readAt) markRead.mutate(item.id);
+                  workspace.open(item.issueId);
+                }}
+                accessibilityRole="button"
+              >
+                <View style={[styles.dot, item.readAt && styles.readDot]} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.context}>
+                    {item.projectKey} · {item.type.replaceAll('_', ' ')}
+                  </Text>
+                  <Text
+                    style={[styles.title, !item.readAt && styles.unreadTitle]}
+                    numberOfLines={2}
+                  >
+                    {item.issueTitle}
+                  </Text>
+                  <Text style={styles.detail}>
+                    {item.actorName ?? 'Workspace'} ·{' '}
+                    {new Date(item.createdAt).toLocaleDateString()}
+                  </Text>
+                </View>
+              </Pressable>
+            )}
+          />
+        )}
+      </View>
+    </IssueWorkspace>
   );
 }
 

@@ -8,7 +8,7 @@ import {
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { Appearance, AppState } from 'react-native';
+import { Appearance, AppState, useWindowDimensions } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ProjectScopeProvider, useProjectScope } from '@/lib/project-scope';
 import { authClient } from '@/lib/auth';
@@ -19,6 +19,8 @@ import { PreferencesProvider, usePreferences } from '@/lib/preferences-context';
 function RootNavigator() {
   const colors = useColors();
   const { dark } = useTheme();
+  const { width } = useWindowDimensions();
+  const presentation = width >= 768 ? 'formSheet' : 'modal';
   const { ready } = usePreferences();
   const { data, isPending } = authClient.useSession();
   const queryClient = useQueryClient();
@@ -65,33 +67,21 @@ function RootNavigator() {
         <Stack.Protected guard={!!data?.user}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="search" options={{ title: 'Search' }} />
-          <Stack.Screen name="profile" options={{ title: 'Edit profile', presentation: 'modal' }} />
+          <Stack.Screen name="profile" options={{ title: 'Edit profile', presentation }} />
           <Stack.Screen
             name="change-password"
-            options={{ title: 'Change password', presentation: 'modal' }}
+            options={{ title: 'Change password', presentation }}
           />
           <Stack.Screen name="project/[key]" options={{ title: 'Project' }} />
           <Stack.Screen name="issue/[id]" options={{ title: 'Issue' }} />
-          <Stack.Screen
-            name="edit-issue/[id]"
-            options={{ title: 'Edit issue', presentation: 'modal' }}
-          />
+          <Stack.Screen name="edit-issue/[id]" options={{ title: 'Edit issue', presentation }} />
           <Stack.Screen
             name="edit-field/[issueId]/[fieldId]"
-            options={{ title: 'Edit field', presentation: 'modal' }}
+            options={{ title: 'Edit field', presentation }}
           />
-          <Stack.Screen
-            name="link-issue/[id]"
-            options={{ title: 'Link issue', presentation: 'modal' }}
-          />
-          <Stack.Screen
-            name="log-time/[id]"
-            options={{ title: 'Log time', presentation: 'modal' }}
-          />
-          <Stack.Screen
-            name="new-issue/[key]"
-            options={{ title: 'New issue', presentation: 'modal' }}
-          />
+          <Stack.Screen name="link-issue/[id]" options={{ title: 'Link issue', presentation }} />
+          <Stack.Screen name="log-time/[id]" options={{ title: 'Log time', presentation }} />
+          <Stack.Screen name="new-issue/[key]" options={{ title: 'New issue', presentation }} />
         </Stack.Protected>
       </Stack>
     </ThemeProvider>

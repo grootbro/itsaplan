@@ -1,5 +1,5 @@
+import { IssueWorkspace, useIssueWorkspace } from '@/ui/IssueWorkspace';
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { api } from '@/lib/api';
@@ -41,9 +41,9 @@ async function searchProjects(
 }
 
 export default function Search() {
+  const workspace = useIssueWorkspace();
   const colors = useColors();
   const styles = useThemedStyles(createStyles);
-  const router = useRouter();
   const { projectKey, selectProject } = useProjectScope();
   const [term, setTerm] = useState('');
   const [submitted, setSubmitted] = useState('');
@@ -70,99 +70,107 @@ export default function Search() {
   };
 
   return (
-    <View style={styles.screen}>
-      <View style={styles.inputWrap}>
-        <TextInput
-          accessibilityLabel="Search issues"
-          value={term}
-          onChangeText={setTerm}
-          onSubmitEditing={submit}
-          returnKeyType="search"
-          placeholder="Issue, title, or description"
-          placeholderTextColor={colors.muted}
-          style={styles.input}
-        />
-        <Pressable accessibilityRole="button" onPress={submit}>
-          <Text style={styles.go}>Go</Text>
-        </Pressable>
-      </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0 }}
-        contentContainerStyle={styles.projects}
-      >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ selected: allProjects }}
-          onPress={() => {
-            setAllProjects(true);
-            setSubmitted('');
-          }}
-          style={[styles.project, allProjects && styles.selectedProject]}
+    <IssueWorkspace workspace={workspace}>
+      <View style={styles.screen}>
+        <View style={styles.inputWrap}>
+          <TextInput
+            accessibilityLabel="Search issues"
+            value={term}
+            onChangeText={setTerm}
+            onSubmitEditing={submit}
+            returnKeyType="search"
+            placeholder="Issue, title, or description"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+          />
+          <Pressable accessibilityRole="button" onPress={submit}>
+            <Text style={styles.go}>Go</Text>
+          </Pressable>
+        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ flexGrow: 0 }}
+          contentContainerStyle={styles.projects}
         >
-          <Text style={[styles.projectText, allProjects && styles.selectedText]}>All projects</Text>
-        </Pressable>
-        {readable.map((project) => (
           <Pressable
             accessibilityRole="button"
-            key={project.id}
+            accessibilityState={{ selected: allProjects }}
             onPress={() => {
-              selectProject(project.key);
-              setAllProjects(false);
+              setAllProjects(true);
               setSubmitted('');
             }}
-            style={[styles.project, !allProjects && key === project.key && styles.selectedProject]}
+            style={[styles.project, allProjects && styles.selectedProject]}
           >
-            <Text
-              style={[
-                styles.projectText,
-                !allProjects && key === project.key && styles.selectedText,
-              ]}
-            >
-              {project.key}
+            <Text style={[styles.projectText, allProjects && styles.selectedText]}>
+              All projects
             </Text>
           </Pressable>
-        ))}
-      </ScrollView>
-      {projects.isError && !projects.data ? (
-        <Notice message="Projects could not be loaded." onPress={() => void projects.refetch()} />
-      ) : !submitted ? (
-        <EmptyState title="Find an issue" detail="Search one project or all your projects." />
-      ) : projects.isPending || results.isLoading ? (
-        <Loading />
-      ) : results.isError && !results.data ? (
-        <Notice
-          message="Search unavailable. Check your connection and retry."
-          onPress={() => void results.refetch()}
-        />
-      ) : (
-        <FlatList
-          data={results.data?.items ?? []}
-          keyExtractor={(item) => String(item.id)}
-          ListEmptyComponent={<EmptyState title="No matches" detail="Try another term." />}
-          ListHeaderComponent={
-            results.isError || projects.isError ? (
-              <Notice
-                message="Could not refresh search. Showing loaded results."
-                onPress={() => void Promise.all([projects.refetch(), results.refetch()])}
-              />
-            ) : results.data?.failed ? (
-              <Text style={styles.partial}>
-                Some projects could not be searched. Tap Go to retry.
+          {readable.map((project) => (
+            <Pressable
+              accessibilityRole="button"
+              key={project.id}
+              onPress={() => {
+                selectProject(project.key);
+                setAllProjects(false);
+                setSubmitted('');
+              }}
+              style={[
+                styles.project,
+                !allProjects && key === project.key && styles.selectedProject,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.projectText,
+                  !allProjects && key === project.key && styles.selectedText,
+                ]}
+              >
+                {project.key}
               </Text>
-            ) : null
-          }
-          renderItem={({ item }) => (
-            <IssueRow
-              issue={item}
-              state={allProjects ? item.projectKey : undefined}
-              onPress={() => router.push(`/issue/${item.id}`)}
-            />
-          )}
-        />
-      )}
-    </View>
+            </Pressable>
+          ))}
+        </ScrollView>
+        {projects.isError && !projects.data ? (
+          <Notice message="Projects could not be loaded." onPress={() => void projects.refetch()} />
+        ) : !submitted ? (
+          <EmptyState title="Find an issue" detail="Search one project or all your projects." />
+        ) : projects.isPending || results.isLoading ? (
+          <Loading />
+        ) : results.isError && !results.data ? (
+          <Notice
+            message="Search unavailable. Check your connection and retry."
+            onPress={() => void results.refetch()}
+          />
+        ) : (
+          <FlatList
+            data={results.data?.items ?? []}
+            keyExtractor={(item) => String(item.id)}
+            ListEmptyComponent={<EmptyState title="No matches" detail="Try another term." />}
+            ListHeaderComponent={
+              results.isError || projects.isError ? (
+                <Notice
+                  message="Could not refresh search. Showing loaded results."
+                  onPress={() => void Promise.all([projects.refetch(), results.refetch()])}
+                />
+              ) : results.data?.failed ? (
+                <Text style={styles.partial}>
+                  Some projects could not be searched. Tap Go to retry.
+                </Text>
+              ) : null
+            }
+            renderItem={({ item }) => (
+              <IssueRow
+                issue={item}
+                selected={workspace.selectedId === item.id}
+                state={allProjects ? item.projectKey : undefined}
+                onPress={() => workspace.open(item.id)}
+              />
+            )}
+          />
+        )}
+      </View>
+    </IssueWorkspace>
   );
 }
 

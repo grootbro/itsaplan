@@ -1,6 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ReactNode } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColors, useThemedStyles, type Palette } from './theme';
 
@@ -93,12 +102,19 @@ export function NativeSheet({
   onClose: () => void;
   children: ReactNode;
 }) {
+  const { width } = useWindowDimensions();
   const styles = useThemedStyles(createStyles);
   return (
     <Modal
       visible={visible}
       animationType="none"
-      presentationStyle="pageSheet"
+      presentationStyle={width >= 768 ? 'formSheet' : 'pageSheet'}
+      supportedOrientations={[
+        'portrait',
+        'portrait-upside-down',
+        'landscape-left',
+        'landscape-right',
+      ]}
       onRequestClose={onClose}
     >
       <SafeAreaView style={styles.sheet}>

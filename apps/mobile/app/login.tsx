@@ -73,7 +73,14 @@ export default function Login() {
 const createStyles = (colors: Palette) =>
   StyleSheet.create({
     root: { flex: 1, backgroundColor: colors.canvas },
-    content: { flexGrow: 1, justifyContent: 'center', padding: 30 },
+    content: {
+      flexGrow: 1,
+      justifyContent: 'center',
+      padding: 30,
+      width: '100%',
+      maxWidth: 480,
+      alignSelf: 'center',
+    },
     mark: {
       width: 60,
       height: 60,

@@ -29,7 +29,7 @@ export default function Profile() {
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: colors.canvas }}
-      contentContainerStyle={{ padding: 22 }}
+      contentContainerStyle={{ padding: 22, width: '100%', maxWidth: 640, alignSelf: 'center' }}
       keyboardShouldPersistTaps="handled"
       automaticallyAdjustKeyboardInsets
     >

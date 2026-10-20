@@ -10,7 +10,7 @@ ios
 
 It's a Plan mobile is the Expo client for the existing issue-tracking workspace.
 The user requested a substantial extension toward web feature coverage with a
-minimal, native interface and code review. iOS is the configured release target;
+minimal, native interface and code review. iPhone and iPad are the configured iOS release targets;
 Android code paths exist but Android release readiness is not established.
 
 ## Operating Context
@@ -23,8 +23,9 @@ The existing API and its permissions define behavior. The app uses existing acco
 
 Extend the daily workspace with project filtering, sorting, grouping, personal
 project preferences, cross-project assigned tasks and quick issue actions.
-Preserve existing issue flows. No new server business rules, dependencies, release,
-production deployment or signing changes. The local ban on QA remains applicable.
+Preserve existing issue flows and existing API business rules. Use the configured iOS
+TestFlight pipeline and existing signing credentials. Keep local checks minimal;
+heavy builds and checks run in the cloud. Device visual validation remains pending.
 
 ## Brand Commitments
 

@@ -9,11 +9,12 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
     scheme: 'itsaplan',
     icon: './assets/icon.png',
     version: '1.0.0',
-    orientation: 'portrait',
+    orientation: 'default',
     userInterfaceStyle: 'automatic',
     ios: {
-      supportsTablet: false,
-      buildNumber: '5',
+      supportsTablet: true,
+      requireFullScreen: false,
+      buildNumber: '6',
       ...(process.env.IOS_BUNDLE_IDENTIFIER
         ? { bundleIdentifier: process.env.IOS_BUNDLE_IDENTIFIER }
         : {}),

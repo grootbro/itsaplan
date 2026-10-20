@@ -200,3 +200,9 @@ not rendered native evidence or additional implementation tokens.
 The native app supports System, Light and Dark appearance. The dark palette uses a #141414 canvas, #1E1E1E surfaces, #F1F1F1 text and #ADADAD secondary text. Selected controls invert their foreground through onAccent. All native styles resolve from the active palette; navigation, status bar, keyboards and date pickers follow the same choice.
 
 The You screen groups device preferences separately from account actions. Appearance, launch destination and haptics persist locally. Profile name and password use the existing shared account API. Search opens from workspace headers; the bottom bar contains My work, Projects, Inbox and You.
+
+## iPad workspace
+
+The Operate layout follows the available window width and accessibility text size. Regular windows use the native navigation sidebar. Work areas of at least 900pt show a 360–420pt task list beside the shared issue detail surface. Selection remains mounted when the window narrows, with a Back to list control; phone-width list selections use the existing navigation stack. Very large text uses one column and bottom navigation.
+
+Account and project directories have bounded reading widths. Focused forms and filter editors use native form sheets on regular windows. iPad supports both orientations and multitasking. Pointer and keyboard access use the same native controls and accessibility labels as touch. Hardware and Simulator visual acceptance remains a separate validation step.

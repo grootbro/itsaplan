@@ -104,7 +104,7 @@ export default function Projects() {
     </>
   );
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { width: '100%', maxWidth: 1000, alignSelf: 'center' }]}>
       {query.isPending ? (
         <>
           {header}

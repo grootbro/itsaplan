@@ -7,6 +7,7 @@ import { useColors, useThemedStyles, type Palette } from './theme';
 export function IssueRow({
   issue,
   onPress,
+  selected = false,
   onLongPress,
   onActions,
   state,
@@ -16,6 +17,7 @@ export function IssueRow({
 }: {
   issue: Pick<Issue, 'identifier' | 'title' | 'priority' | 'dueDate'>;
   onPress: () => void;
+  selected?: boolean;
   onLongPress?: () => void;
   onActions?: () => void;
   state?: string;
@@ -30,9 +32,10 @@ export function IssueRow({
     date && stateType && !['completed', 'canceled'].includes(stateType) && date < localDay();
   const dueLabel = date === localDay() ? 'Due today' : `Due ${date}`;
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, selected && { backgroundColor: colors.accentSoft }]}>
       <Pressable
         accessibilityRole="button"
+        accessibilityState={{ selected }}
         accessibilityLabel={[
           issue.identifier,
           issue.title,

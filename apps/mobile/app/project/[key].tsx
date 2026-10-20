@@ -1,3 +1,4 @@
+import { IssueWorkspace, useIssueWorkspace } from '@/ui/IssueWorkspace';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
@@ -32,6 +33,7 @@ import { Notice, SearchInput, useWorkStyles } from '@/ui/work-controls';
 import { useColors, useThemedStyles, type Palette } from '@/ui/theme';
 
 export default function Project() {
+  const workspace = useIssueWorkspace();
   const colors = useColors();
   const styles = useThemedStyles(createStyles);
   const workStyles = useWorkStyles();
@@ -212,113 +214,116 @@ export default function Project() {
     </>
   );
   return (
-    <View style={styles.screen}>
-      <SectionList<Issue>
-        sections={sections}
-        keyExtractor={(issue) => String(issue.id)}
-        stickySectionHeadersEnabled={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        contentContainerStyle={{ paddingBottom: insets.bottom + 110, flexGrow: 1 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={listQuery.isRefetching || board.isRefetching}
-            onRefresh={() => void refresh()}
-            tintColor={colors.accent}
-          />
-        }
-        ListHeaderComponent={
-          <>
-            {header}
-            {board.isError || listQuery.isError ? (
-              <Notice
-                message="Could not refresh. Your loaded work is still here."
-                onPress={() => void refresh()}
+    <IssueWorkspace workspace={workspace}>
+      <View style={styles.screen}>
+        <SectionList<Issue>
+          sections={sections}
+          keyExtractor={(issue) => String(issue.id)}
+          stickySectionHeadersEnabled={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          contentContainerStyle={{ paddingBottom: insets.bottom + 110, flexGrow: 1 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={listQuery.isRefetching || board.isRefetching}
+              onRefresh={() => void refresh()}
+              tintColor={colors.accent}
+            />
+          }
+          ListHeaderComponent={
+            <>
+              {header}
+              {board.isError || listQuery.isError ? (
+                <Notice
+                  message="Could not refresh. Your loaded work is still here."
+                  onPress={() => void refresh()}
+                />
+              ) : null}
+              {view === 'archive' && archived.isPending ? <Loading /> : null}
+            </>
+          }
+          ListEmptyComponent={
+            view === 'archive' && archived.isPending ? null : (
+              <EmptyState
+                title={filterCount ? 'No matching issues' : 'No issues here'}
+                detail={
+                  filterCount
+                    ? 'Clear a filter or search for another term.'
+                    : 'Choose another status, or create a new issue.'
+                }
               />
-            ) : null}
-            {view === 'archive' && archived.isPending ? <Loading /> : null}
-          </>
-        }
-        ListEmptyComponent={
-          view === 'archive' && archived.isPending ? null : (
-            <EmptyState
-              title={filterCount ? 'No matching issues' : 'No issues here'}
-              detail={
-                filterCount
-                  ? 'Clear a filter or search for another term.'
-                  : 'Choose another status, or create a new issue.'
+            )
+          }
+          renderSectionHeader={({ section }) =>
+            section.title ? (
+              <View style={workStyles.section}>
+                <Text accessibilityRole="header" style={workStyles.sectionTitle}>
+                  {section.title} · {section.data.length}
+                </Text>
+              </View>
+            ) : null
+          }
+          renderItem={({ item }) => (
+            <IssueRow
+              issue={item}
+              selected={workspace.selectedId === item.id}
+              state={columns.find((column) => column.id === item.columnId)?.name}
+              stateType={columns.find((column) => column.id === item.columnId)?.stateType}
+              stateColor={columns.find((column) => column.id === item.columnId)?.color}
+              assignee={
+                board.data?.assignees.find((person) => person.userId === item.assigneeUserId)?.name
+              }
+              onPress={() => workspace.open(item.id)}
+              onLongPress={
+                view !== 'archive' && board.data?.permissions.work_items?.edit
+                  ? () => setActionId(item.id)
+                  : undefined
+              }
+              onActions={
+                view !== 'archive' && board.data?.permissions.work_items?.edit
+                  ? () => setActionId(item.id)
+                  : undefined
               }
             />
-          )
-        }
-        renderSectionHeader={({ section }) =>
-          section.title ? (
-            <View style={workStyles.section}>
-              <Text accessibilityRole="header" style={workStyles.sectionTitle}>
-                {section.title} · {section.data.length}
-              </Text>
-            </View>
-          ) : null
-        }
-        renderItem={({ item }) => (
-          <IssueRow
-            issue={item}
-            state={columns.find((column) => column.id === item.columnId)?.name}
-            stateType={columns.find((column) => column.id === item.columnId)?.stateType}
-            stateColor={columns.find((column) => column.id === item.columnId)?.color}
-            assignee={
-              board.data?.assignees.find((person) => person.userId === item.assigneeUserId)?.name
-            }
-            onPress={() => router.push(`/issue/${item.id}`)}
-            onLongPress={
-              view !== 'archive' && board.data?.permissions.work_items?.edit
-                ? () => setActionId(item.id)
-                : undefined
-            }
-            onActions={
-              view !== 'archive' && board.data?.permissions.work_items?.edit
-                ? () => setActionId(item.id)
-                : undefined
-            }
+          )}
+        />
+        {view !== 'archive' && board.data.permissions.work_items?.create ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Create issue"
+            onPress={() => router.push(`/new-issue/${key}`)}
+            style={[styles.fab, { bottom: insets.bottom + 20 }]}
+          >
+            <Ionicons name="add" size={24} color={colors.onAccent} />
+            <Text style={styles.fabLabel}>New issue</Text>
+          </Pressable>
+        ) : null}
+        {showFilters ? (
+          <IssueFilters
+            board={board.data}
+            filters={filters}
+            onChange={setFilters}
+            sort={sort}
+            setSort={setSort}
+            grouping={grouping}
+            setGrouping={setGrouping}
+            onClose={() => setShowFilters(false)}
+            cycles={cycleChoices}
+            initiatives={initiativeChoices}
+            optionsError={cycles.isError || initiatives.isError}
+            onRetryOptions={retryOptions}
           />
-        )}
-      />
-      {view !== 'archive' && board.data.permissions.work_items?.create ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Create issue"
-          onPress={() => router.push(`/new-issue/${key}`)}
-          style={[styles.fab, { bottom: insets.bottom + 20 }]}
-        >
-          <Ionicons name="add" size={24} color={colors.onAccent} />
-          <Text style={styles.fabLabel}>New issue</Text>
-        </Pressable>
-      ) : null}
-      {showFilters ? (
-        <IssueFilters
-          board={board.data}
-          filters={filters}
-          onChange={setFilters}
-          sort={sort}
-          setSort={setSort}
-          grouping={grouping}
-          setGrouping={setGrouping}
-          onClose={() => setShowFilters(false)}
-          cycles={cycleChoices}
-          initiatives={initiativeChoices}
-          optionsError={cycles.isError || initiatives.isError}
-          onRetryOptions={retryOptions}
-        />
-      ) : null}
-      {selectedIssue && board.data.permissions.work_items?.edit ? (
-        <IssueActions
-          key={selectedIssue.id}
-          issue={selectedIssue}
-          board={board.data}
-          onClose={() => setActionId(null)}
-        />
-      ) : null}
-    </View>
+        ) : null}
+        {selectedIssue && board.data.permissions.work_items?.edit ? (
+          <IssueActions
+            key={selectedIssue.id}
+            issue={selectedIssue}
+            board={board.data}
+            onClose={() => setActionId(null)}
+          />
+        ) : null}
+      </View>
+    </IssueWorkspace>
   );
 }
 

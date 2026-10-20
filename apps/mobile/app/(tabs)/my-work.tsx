@@ -1,3 +1,4 @@
+import { IssueWorkspace, useIssueWorkspace } from '@/ui/IssueWorkspace';
 import { SearchButton } from '@/ui/SearchButton';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
@@ -22,6 +23,7 @@ type AssignedIssue = IssueSearchHit & {
 };
 
 export default function MyWork() {
+  const workspace = useIssueWorkspace();
   const colors = useColors();
   const workStyles = useWorkStyles();
   const router = useRouter();
@@ -140,119 +142,122 @@ export default function MyWork() {
     </>
   );
   return (
-    <View style={{ flex: 1, backgroundColor: colors.canvas }}>
-      {initialError ? (
-        <View style={{ flex: 1 }}>
-          {header}
-          <EmptyState
-            title="Your work is unavailable"
-            detail="Check your connection and try again."
-          />
-          <Action label="Retry" onPress={() => void refresh()} />
-        </View>
-      ) : projects.isPending || assigned.isLoading ? (
-        <>
-          {header}
-          <Loading />
-        </>
-      ) : (
-        <SectionList<AssignedIssue>
-          sections={sections}
-          keyExtractor={(issue) => String(issue.id)}
-          stickySectionHeadersEnabled={false}
-          keyboardDismissMode="on-drag"
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{ paddingBottom: 32, flexGrow: 1 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={assigned.isRefetching || projects.isRefetching}
-              onRefresh={() => void refresh()}
-              tintColor={colors.accent}
-            />
-          }
-          ListHeaderComponent={
-            <>
-              {header}
-              {projects.isError || assigned.isError ? (
-                <Notice
-                  message="Could not refresh. Showing loaded work."
-                  onPress={() => void refresh()}
-                />
-              ) : null}
-              {assigned.data?.failed.length ? (
-                <Notice
-                  message={`Some projects could not be loaded: ${assigned.data.failed.join(', ')}.`}
-                  onPress={() => void assigned.refetch()}
-                />
-              ) : null}
-              {assigned.data?.limited.length ? (
-                <Notice
-                  message={`Showing up to 500 assigned issues per project. Open these projects for the full list: ${assigned.data.limited.join(', ')}.`}
-                />
-              ) : null}
-            </>
-          }
-          ListEmptyComponent={
+    <IssueWorkspace workspace={workspace}>
+      <View style={{ flex: 1, backgroundColor: colors.canvas }}>
+        {initialError ? (
+          <View style={{ flex: 1 }}>
+            {header}
             <EmptyState
-              title={term ? 'No matching issues' : 'No assigned work here'}
-              detail="Choose another project or include completed work. New assignments will appear here."
+              title="Your work is unavailable"
+              detail="Check your connection and try again."
             />
-          }
-          renderSectionHeader={({ section }) => (
-            <View style={workStyles.section}>
-              <Text accessibilityRole="header" style={workStyles.sectionTitle}>
-                {section.title} · {section.data.length}
-              </Text>
-            </View>
-          )}
-          renderItem={({ item }) => (
-            <IssueRow
-              issue={item}
-              state={`${item.projectKey} · ${item.stateName}`}
-              stateColor={item.stateColor}
-              stateType={item.stateType}
-              onPress={() => router.push(`/issue/${item.id}`)}
-              onActions={item.canEdit ? () => router.push(`/edit-issue/${item.id}`) : undefined}
+            <Action label="Retry" onPress={() => void refresh()} />
+          </View>
+        ) : projects.isPending || assigned.isLoading ? (
+          <>
+            {header}
+            <Loading />
+          </>
+        ) : (
+          <SectionList<AssignedIssue>
+            sections={sections}
+            keyExtractor={(issue) => String(issue.id)}
+            stickySectionHeadersEnabled={false}
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
+            contentContainerStyle={{ paddingBottom: 32, flexGrow: 1 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={assigned.isRefetching || projects.isRefetching}
+                onRefresh={() => void refresh()}
+                tintColor={colors.accent}
+              />
+            }
+            ListHeaderComponent={
+              <>
+                {header}
+                {projects.isError || assigned.isError ? (
+                  <Notice
+                    message="Could not refresh. Showing loaded work."
+                    onPress={() => void refresh()}
+                  />
+                ) : null}
+                {assigned.data?.failed.length ? (
+                  <Notice
+                    message={`Some projects could not be loaded: ${assigned.data.failed.join(', ')}.`}
+                    onPress={() => void assigned.refetch()}
+                  />
+                ) : null}
+                {assigned.data?.limited.length ? (
+                  <Notice
+                    message={`Showing up to 500 assigned issues per project. Open these projects for the full list: ${assigned.data.limited.join(', ')}.`}
+                  />
+                ) : null}
+              </>
+            }
+            ListEmptyComponent={
+              <EmptyState
+                title={term ? 'No matching issues' : 'No assigned work here'}
+                detail="Choose another project or include completed work. New assignments will appear here."
+              />
+            }
+            renderSectionHeader={({ section }) => (
+              <View style={workStyles.section}>
+                <Text accessibilityRole="header" style={workStyles.sectionTitle}>
+                  {section.title} · {section.data.length}
+                </Text>
+              </View>
+            )}
+            renderItem={({ item }) => (
+              <IssueRow
+                issue={item}
+                selected={workspace.selectedId === item.id}
+                state={`${item.projectKey} · ${item.stateName}`}
+                stateColor={item.stateColor}
+                stateType={item.stateType}
+                onPress={() => workspace.open(item.id)}
+                onActions={item.canEdit ? () => router.push(`/edit-issue/${item.id}`) : undefined}
+              />
+            )}
+          />
+        )}
+        {showOptions ? (
+          <NativeSheet visible title="Your work, your view" onClose={() => setShowOptions(false)}>
+            <Choices
+              label="Project"
+              value={projectKey}
+              options={[
+                { value: 'all', label: 'All projects' },
+                ...readable.map((project) => ({ value: project.key, label: project.name })),
+              ]}
+              onChange={setProjectKey}
             />
-          )}
-        />
-      )}
-      {showOptions ? (
-        <NativeSheet visible title="Your work, your view" onClose={() => setShowOptions(false)}>
-          <Choices
-            label="Project"
-            value={projectKey}
-            options={[
-              { value: 'all', label: 'All projects' },
-              ...readable.map((project) => ({ value: project.key, label: project.name })),
-            ]}
-            onChange={setProjectKey}
-          />
-          <Choices
-            label="Include"
-            value={includeClosed ? 'all' : 'open'}
-            options={[
-              { value: 'open', label: 'Open work' },
-              { value: 'all', label: 'Completed & canceled too' },
-            ]}
-            onChange={(value) => setIncludeClosed(value === 'all')}
-          />
-          <Choices
-            label="Organize"
-            value={`${grouping}:${sort}`}
-            options={[
-              { value: 'due:due', label: 'By due date' },
-              { value: 'project:due', label: 'By project' },
-              { value: 'due:priority', label: 'Priority within dates' },
-            ]}
-            onChange={(value) => {
-              const [group, order] = value.split(':');
-              setGrouping(group as 'due' | 'project');
-              setSort(order as IssueSort);
-            }}
-          />
-        </NativeSheet>
-      ) : null}
-    </View>
+            <Choices
+              label="Include"
+              value={includeClosed ? 'all' : 'open'}
+              options={[
+                { value: 'open', label: 'Open work' },
+                { value: 'all', label: 'Completed & canceled too' },
+              ]}
+              onChange={(value) => setIncludeClosed(value === 'all')}
+            />
+            <Choices
+              label="Organize"
+              value={`${grouping}:${sort}`}
+              options={[
+                { value: 'due:due', label: 'By due date' },
+                { value: 'project:due', label: 'By project' },
+                { value: 'due:priority', label: 'Priority within dates' },
+              ]}
+              onChange={(value) => {
+                const [group, order] = value.split(':');
+                setGrouping(group as 'due' | 'project');
+                setSort(order as IssueSort);
+              }}
+            />
+          </NativeSheet>
+        ) : null}
+      </View>
+    </IssueWorkspace>
   );
 }

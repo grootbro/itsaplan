@@ -69,7 +69,13 @@ export default function Account() {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.screen}
+      contentContainerStyle={[
+        styles.content,
+        { width: '100%', maxWidth: 820, alignSelf: 'center' },
+      ]}
+    >
       <ScreenTitle title="You" />
       {storageError ? <Notice message={storageError} /> : null}
       {error ? <Notice message={error} /> : null}
