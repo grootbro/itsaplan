@@ -1,0 +1,65 @@
+name: Passkey policy QA
+on:
+  push:
+    branches: [qa/passkey-policy-oct22]
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      API_URL: https://example.test
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - run: bun install --frozen-lockfile --filter=web --filter=dev-plane
+      - name: Format source
+        run: bunx prettier --write apps/web/src/features/account/components/security/AccountSecurityAddPasskey.test.tsx apps/web/src/features/account/components/security/AccountSecurityConfirmSession.tsx
+      - name: Regression baseline must fail for the intended reason
+        shell: bash
+        run: |
+          mkdir -p /tmp/passkey-evidence
+          target=apps/web/src/features/account/components/security/AccountSecurityConfirmSession.tsx
+          cp "$target" /tmp/confirmed-fixed.tsx
+          git show 8decf5f49e7bbc4398e971b157394e05bcebffb2:"$target" > "$target"
+          set +e
+          (cd apps/web && bun run test src/features/account/components/security/AccountSecurityAddPasskey.test.tsx --test-name-pattern 'does not offer a password while instance password sign-in is disabled') > /tmp/passkey-evidence/baseline.log 2>&1
+          result=$?
+          set -e
+          cp /tmp/confirmed-fixed.tsx "$target"
+          cat /tmp/passkey-evidence/baseline.log
+          test "$result" -ne 0
+          grep -F 'Email links are unavailable when password sign-in is disabled' /tmp/passkey-evidence/baseline.log
+          grep -E '1 fail' /tmp/passkey-evidence/baseline.log
+      - name: Focused tests
+        run: |
+          set -o pipefail
+          (cd apps/web && bun run test src/features/account/components/security/AccountSecurityAddPasskey.test.tsx) 2>&1 | tee /tmp/passkey-evidence/focused.log
+      - name: Lint and types
+        run: |
+          set -o pipefail
+          bunx turbo run lint typecheck --filter=web --concurrency=1 2>&1 | tee /tmp/passkey-evidence/quality.log
+      - name: Full web suite
+        run: |
+          set -o pipefail
+          bunx turbo run test --filter=web --concurrency=1 2>&1 | tee /tmp/passkey-evidence/web.log
+      - name: Capture tested source
+        run: |
+          bunx prettier --check apps/web/src/features/account/components/security/AccountSecurityAddPasskey.test.tsx apps/web/src/features/account/components/security/AccountSecurityConfirmSession.tsx
+          git add apps/web/src/features/account/components/security/AccountSecurityAddPasskey.test.tsx apps/web/src/features/account/components/security/AccountSecurityConfirmSession.tsx
+          git update-index --force-remove .github/workflows/passkey-policy-qa.yml
+          git write-tree > /tmp/passkey-evidence/source-tree.txt
+          git diff --cached --binary HEAD -- apps/web/src/features/account/components/security > /tmp/passkey-evidence/formatted.patch
+          cp apps/web/src/features/account/components/security/AccountSecurityAddPasskey.test.tsx /tmp/passkey-evidence/
+          cp apps/web/src/features/account/components/security/AccountSecurityConfirmSession.tsx /tmp/passkey-evidence/
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: passkey-policy-evidence
+          path: /tmp/passkey-evidence
+          retention-days: 14
