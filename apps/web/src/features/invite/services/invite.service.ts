@@ -84,7 +84,10 @@ export async function signInForInvite(input: {
   }
 }
 
-export function useReceivedInvitesQuery(user: { id: string; email: string; emailVerified: boolean } | undefined, params: PageParams) {
+export function useReceivedInvitesQuery(
+  user: { id: string; email: string; emailVerified: boolean } | undefined,
+  params: PageParams,
+) {
   return useQuery({
     queryKey: qk.receivedInvitesPage(user?.id ?? '', user?.email ?? '', params),
     queryFn: () => listReceivedInvites(params),

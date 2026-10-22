@@ -51,23 +51,30 @@ export default function Home() {
     workspaces?.find((one) => one.role === 'owner') ?? workspaces?.find((one) => one.canCreateTeam);
 
   if (teams && workspaces && !managedTeam && projects?.length === 0) {
-    if (teams.length === 0 && !teamWorkspace) return <InviteStart><NoTeamStart /></InviteStart>;
+    if (teams.length === 0 && !teamWorkspace)
+      return (
+        <InviteStart>
+          <NoTeamStart />
+        </InviteStart>
+      );
     return (
-      <InviteStart><StartEmpty
-        icon={<Users />}
-        title={teams.length === 0 ? t('noTeamsTitle') : t('noProjectsTitle')}
-        hint={
-          teams.length === 0
-            ? t('noTeamsHint')
-            : t(teamWorkspace ? 'noProjectAccessOwnerHint' : 'noProjectAccessHint')
-        }
-        action={teamWorkspace && t('createTeam')}
-        onAction={() => setCreating(true)}
-      >
-        {creating && teamWorkspace && (
-          <NewTeamModal workspaceId={teamWorkspace.id} onClose={() => setCreating(false)} />
-        )}
-      </StartEmpty></InviteStart>
+      <InviteStart>
+        <StartEmpty
+          icon={<Users />}
+          title={teams.length === 0 ? t('noTeamsTitle') : t('noProjectsTitle')}
+          hint={
+            teams.length === 0
+              ? t('noTeamsHint')
+              : t(teamWorkspace ? 'noProjectAccessOwnerHint' : 'noProjectAccessHint')
+          }
+          action={teamWorkspace && t('createTeam')}
+          onAction={() => setCreating(true)}
+        >
+          {creating && teamWorkspace && (
+            <NewTeamModal workspaceId={teamWorkspace.id} onClose={() => setCreating(false)} />
+          )}
+        </StartEmpty>
+      </InviteStart>
     );
   }
 
@@ -75,24 +82,26 @@ export default function Home() {
   // without a project, so the empty state offers project creation directly.
   if (managedTeam && projects?.length === 0) {
     return (
-      <InviteStart><StartEmpty
-        icon={<SquareKanban />}
-        title={t('noProjectsTitle')}
-        hint={t('noProjectsHint')}
-        action={t('createProject')}
-        onAction={() => setCreating(true)}
-      >
-        {creating && (
-          <NewProjectModal
-            teamId={managedTeam.id}
-            onClose={() => setCreating(false)}
-            onCreated={(key) => {
-              setCreating(false);
-              router.push(projectPath(key));
-            }}
-          />
-        )}
-      </StartEmpty></InviteStart>
+      <InviteStart>
+        <StartEmpty
+          icon={<SquareKanban />}
+          title={t('noProjectsTitle')}
+          hint={t('noProjectsHint')}
+          action={t('createProject')}
+          onAction={() => setCreating(true)}
+        >
+          {creating && (
+            <NewProjectModal
+              teamId={managedTeam.id}
+              onClose={() => setCreating(false)}
+              onCreated={(key) => {
+                setCreating(false);
+                router.push(projectPath(key));
+              }}
+            />
+          )}
+        </StartEmpty>
+      </InviteStart>
     );
   }
 

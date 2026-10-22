@@ -14,16 +14,21 @@ async function setup(verified = true) {
   const invitee = await signUpTestUser({ team: false });
   if (verified) {
     const now = Math.floor(Date.now() / 1000);
-    const input = [
-      { alg: 'HS256' },
-      { email: invitee.email, iat: now, exp: now + 60 },
-    ].map((value) => Buffer.from(JSON.stringify(value)).toString('base64url')).join('.');
-    const signature = createHmac('sha256', (await auth.$context).secret).update(input).digest('base64url');
+    const input = [{ alg: 'HS256' }, { email: invitee.email, iat: now, exp: now + 60 }]
+      .map((value) => Buffer.from(JSON.stringify(value)).toString('base64url'))
+      .join('.');
+    const signature = createHmac('sha256', (await auth.$context).secret)
+      .update(input)
+      .digest('base64url');
     const token = `${input}.${signature}`;
     await auth.api.verifyEmail({ query: { token } });
   }
   const client = authedApi(invitee.cookie);
-  const invite = (await asOwner.projects({ projectKey: 'MKT' }).invites.post({ email: invitee.email, role: 'member' })).data!;
+  const invite = (
+    await asOwner
+      .projects({ projectKey: 'MKT' })
+      .invites.post({ email: invitee.email, role: 'member' })
+  ).data!;
   return { client, asOwner, invitee, invite, project };
 }
 
@@ -40,10 +45,14 @@ describe('received invitations', () => {
 
   it('discovers only the current email invitations without granting membership', async () => {
     const { client, asOwner, invite, project } = await setup();
-    await asOwner.projects({ projectKey: 'MKT' }).invites.post({ email: 'another@example.com', role: 'member' });
+    await asOwner
+      .projects({ projectKey: 'MKT' })
+      .invites.post({ email: 'another@example.com', role: 'member' });
     const result = await client.me.invites.get();
     expect(result.status).toBe(200);
-    expect(result.data?.items).toEqual([{ token: invite.token, teamName: expect.any(String), projectName: 'Marketing' }]);
+    expect(result.data?.items).toEqual([
+      { token: invite.token, teamName: expect.any(String), projectName: 'Marketing' },
+    ]);
     expect(result.data?.total).toBe(1);
     expect(result.response.headers.get('cache-control')).toBe('private, no-store');
     expect((await client.teams.get()).data?.some((team) => team.id === project.teamId)).toBe(false);
@@ -53,7 +62,9 @@ describe('received invitations', () => {
 
   it('pages team and project invitations with a stable total', async () => {
     const { client, asOwner, invitee, project } = await setup();
-    const teamInvite = await asOwner.teams({ teamId: project.teamId }).invites.post({ email: invitee.email, role: 'member' });
+    const teamInvite = await asOwner
+      .teams({ teamId: project.teamId })
+      .invites.post({ email: invitee.email, role: 'member' });
     expect(teamInvite.status).toBe(201);
     const first = await client.me.invites.get({ query: { page: 1, pageSize: 1 } });
     const second = await client.me.invites.get({ query: { page: 2, pageSize: 1 } });
@@ -68,7 +79,10 @@ describe('received invitations', () => {
 
   it('excludes expired invitations and honors unlimited lifetime', async () => {
     const { client, invite } = await setup();
-    await db.update(teamInvite).set({ createdAt: new Date(Date.now() - 8 * 86400000) }).where(eq(teamInvite.token, invite.token));
+    await db
+      .update(teamInvite)
+      .set({ createdAt: new Date(Date.now() - 8 * 86400000) })
+      .where(eq(teamInvite.token, invite.token));
     expect((await client.me.invites.get()).data?.total).toBe(0);
     expect((await client.invites({ token: invite.token }).accept.post()).status).toBe(409);
     await setAuthSettings({ inviteTtlDays: 0 });
@@ -84,7 +98,10 @@ describe('received invitations', () => {
   it('removes revoked invitations', async () => {
     const { client, asOwner, invite } = await setup();
     expect((await client.me.invites.get()).data?.total).toBe(1);
-    expect((await asOwner.projects({ projectKey: 'MKT' }).invites({ inviteId: invite.id }).delete()).status).toBe(204);
+    expect(
+      (await asOwner.projects({ projectKey: 'MKT' }).invites({ inviteId: invite.id }).delete())
+        .status,
+    ).toBe(204);
     expect((await client.me.invites.get()).data?.total).toBe(0);
   });
 

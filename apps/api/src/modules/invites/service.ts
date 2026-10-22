@@ -552,7 +552,10 @@ export async function rejectInvite(inviteId: number): Promise<void> {
     .where(eq(teamInvite.id, inviteId));
 }
 
-export async function listReceivedInvites(email: string, window: { limit: number; offset: number }) {
+export async function listReceivedInvites(
+  email: string,
+  window: { limit: number; offset: number },
+) {
   const since = await inviteValidSince();
   const where = and(
     eq(teamInvite.email, normalizeEmail(email)),
@@ -560,14 +563,19 @@ export async function listReceivedInvites(email: string, window: { limit: number
     since ? gte(teamInvite.createdAt, since) : undefined,
   );
   const [items, counts] = await Promise.all([
-    db.select({ token: teamInvite.token, teamName: team.name, projectName: project.name })
+    db
+      .select({ token: teamInvite.token, teamName: team.name, projectName: project.name })
       .from(teamInvite)
       .innerJoin(team, eq(team.id, teamInvite.teamId))
       .leftJoin(project, eq(project.id, teamInvite.projectId))
       .where(where)
       .orderBy(desc(teamInvite.createdAt), desc(teamInvite.id))
-      .limit(window.limit).offset(window.offset),
-    db.select({ total: sql<number>`count(*)::int` }).from(teamInvite).where(where),
+      .limit(window.limit)
+      .offset(window.offset),
+    db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(teamInvite)
+      .where(where),
   ]);
   return { items, total: counts[0]?.total ?? 0 };
 }

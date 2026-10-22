@@ -27,6 +27,18 @@ jobs:
           set -o pipefail
           bun run lint 2>&1 | tee /tmp/invite-evidence/lint.log
           bun run typecheck 2>&1 | tee /tmp/invite-evidence/types.log
+      - name: Inactive membership regression baseline
+        run: |
+          cp apps/web/src/features/invite/components/InviteActions.tsx /tmp/fixed-invite-actions.tsx
+          git show 1da4bf3ab43f2f7c6bcc7056ed41fcf294ecba42:apps/web/src/features/invite/components/InviteActions.tsx > apps/web/src/features/invite/components/InviteActions.tsx
+          set +e
+          (cd apps/web && bun test --preload ./test/setup.ts src/features/invite/components/InviteActions.test.tsx --test-name-pattern 'refreshes inactive') > /tmp/invite-evidence/membership-baseline.log 2>&1
+          baseline_result=$?
+          set -e
+          cp /tmp/fixed-invite-actions.tsx apps/web/src/features/invite/components/InviteActions.tsx
+          cat /tmp/invite-evidence/membership-baseline.log
+          test "$baseline_result" -ne 0
+          grep -q 'new membership' /tmp/invite-evidence/membership-baseline.log
       - name: Full web suite
         run: |
           set -o pipefail

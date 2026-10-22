@@ -83,8 +83,10 @@ export const AcceptInviteResponse = t.Object({
 });
 
 export const receivedInvitesQuery = t.Object(pageQueryFields);
-export const ReceivedInvitePageResponse = pageResponse(t.Object({
-  token: t.String(),
-  teamName: t.String(),
-  projectName: t.Nullable(t.String()),
-}));
+export const ReceivedInvitePageResponse = pageResponse(
+  t.Object({
+    token: t.String(),
+    teamName: t.String(),
+    projectName: t.Nullable(t.String()),
+  }),
+);
