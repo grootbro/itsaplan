@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { defaultProjectDisplay, parseProjectDisplay, projectDisplayKey } from '../project-display';
+import {
+  defaultProjectDisplay,
+  parseProjectDisplay,
+  projectDisplayKey,
+  type ProjectDisplay,
+} from '../project-display';
 import { findProject, projectReference } from '../project-reference';
 
 describe('project display state', () => {
@@ -23,8 +28,8 @@ describe('project display state', () => {
     expect(value.weekStart).toBe(0);
   });
   test('restores every supported layout and intersecting filters', () => {
-    for (const layout of ['board', 'list', 'table', 'calendar']) {
-      const state = {
+    for (const layout of ['board', 'list', 'table', 'calendar'] as const) {
+      const state: ProjectDisplay = {
         ...defaultProjectDisplay(),
         layout,
         scope: 12,

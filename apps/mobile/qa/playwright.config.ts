@@ -1,5 +1,4 @@
 import { defineConfig } from '@playwright/test';
-import { resolve } from 'node:path';
 
 export default defineConfig({
   testDir: '.',
@@ -23,7 +22,7 @@ export default defineConfig({
   },
   webServer: {
     command: 'bun apps/mobile/qa/serve.ts',
-    cwd: resolve(import.meta.dir, '../../..'),
+    cwd: process.cwd(),
     url: 'http://127.0.0.1:4173',
     reuseExistingServer: false,
     timeout: 60_000,
