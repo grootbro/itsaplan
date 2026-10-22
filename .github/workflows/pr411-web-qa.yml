@@ -19,7 +19,9 @@ jobs:
       - name: Read installed Next guide and format changed source
         run: |
           mkdir -p /tmp/pr411-evidence
-          cat apps/web/node_modules/next/dist/docs/01-app/03-api-reference/01-directives/use-client.mdx > /tmp/pr411-evidence/next-use-client.txt
+          guide=$(find node_modules -type f -path "*/next/dist/docs/*" -iname "*use-client*" -print -quit)
+          test -n "$guide"
+          cat "$guide" > /tmp/pr411-evidence/next-use-client.txt
           bunx prettier --write apps/web/src/features/inbox/components/InboxToolbar.tsx apps/web/messages/zh-TW/filters.json apps/web/messages/zh-TW/dashboards.json apps/web/messages/zh-TW/issue.json
       - name: Lint and types
         run: |
