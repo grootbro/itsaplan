@@ -49,12 +49,12 @@ jobs:
       - name: Typecheck
         run: bun run typecheck
 
+      - name: Script tests
+        run: bun test scripts/
+
       # High and critical advisories fail the job; moderate and lower only print.
       - name: Audit dependencies
         run: bun audit --audit-level=high
-
-      - name: Script tests
-        run: bun test scripts/
 
   mobile-ui:
     name: Synthetic mobile UI scenarios
