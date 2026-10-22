@@ -1,16 +1,15 @@
 import { projectReference } from '@/lib/project-reference';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import * as DocumentPicker from 'expo-document-picker';
 import { useNavigation, useRouter } from 'expo-router';
-import * as Linking from 'expo-linking';
 import { useEffect, useRef } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { api } from '@/lib/api';
-import { API_URL, authClient } from '@/lib/auth';
+import { authClient } from '@/lib/auth';
 import { EmptyState, Loading } from '@/ui/primitives';
 import { useColors, useThemedStyles, type Palette } from '@/ui/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { IssueAttachments } from '@/ui/IssueAttachments';
 import { IssueDiscussion } from '@/ui/IssueDiscussion';
 import { IssueChecklists } from '@/ui/IssueChecklists';
 import { IssueWorklogs } from '@/ui/IssueWorklogs';
@@ -53,44 +52,6 @@ export function IssueDetailPanel({
     queryFn: () => api.board(projectReference(project!)),
     enabled: !!projectRef,
   });
-  const attachments = useQuery({
-    queryKey: ['attachments', issueId],
-    queryFn: () => api.attachments(issueId),
-    enabled: Number.isSafeInteger(issueId) && issueId > 0,
-  });
-  const upload = useMutation({
-    mutationFn: (uri: string) => api.uploadAttachment(issueId, uri),
-    onSuccess: () =>
-      void queryClient.invalidateQueries({
-        queryKey: ['attachments', issueId],
-      }),
-    onError: (error) => Alert.alert('Could not upload file', error.message),
-  });
-  const removeAttachment = useMutation({
-    mutationFn: api.deleteAttachment,
-    onSuccess: () =>
-      void queryClient.invalidateQueries({
-        queryKey: ['attachments', issueId],
-      }),
-    onError: (error) => Alert.alert('Could not delete file', error.message),
-  });
-  const pickAttachment = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        copyToCacheDirectory: true,
-      });
-      if (!result.canceled && result.assets[0]) upload.mutate(result.assets[0].uri);
-    } catch (error) {
-      Alert.alert('Could not select file', error instanceof Error ? error.message : 'Try again.');
-    }
-  };
-  const openAttachment = async (url: string) => {
-    try {
-      await Linking.openURL(`${API_URL}${url}`);
-    } catch (error) {
-      Alert.alert('Could not open file', error instanceof Error ? error.message : 'Try again.');
-    }
-  };
   const watch = useMutation({
     mutationFn: (enabled: boolean) => api.watchIssue(issueId, enabled),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ['issue', issueId] }),
@@ -523,66 +484,12 @@ export function IssueDetailPanel({
             ))}
           </View>
         ) : null}
-        {attachments.isPending ? <Loading /> : null}
-        {attachments.isError ? (
-          <Notice message="Attachments unavailable." onPress={() => void attachments.refetch()} />
-        ) : null}
-        {attachments.data?.length || canEdit ? (
-          <View style={styles.section}>
-            <View style={styles.sectionHeading}>
-              <Text style={styles.sectionTitle}>Attachments</Text>
-              {canEdit ? (
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={upload.isPending}
-                  onPress={() => void pickAttachment()}
-                >
-                  <Text style={styles.linkAction}>
-                    {upload.isPending ? 'Uploading…' : 'Add file'}
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
-            {attachments.data?.length
-              ? attachments.data.map((attachment) => (
-                  <View key={attachment.id} style={styles.related}>
-                    <Pressable
-                      accessibilityRole="link"
-                      accessibilityLabel={`Open ${attachment.filename}`}
-                      onPress={() => void openAttachment(attachment.url)}
-                      style={styles.attachmentLink}
-                    >
-                      <Ionicons name="document-outline" size={18} color={colors.accent} />
-                      <Text numberOfLines={1} style={styles.relatedTitle}>
-                        {attachment.filename}
-                      </Text>
-                    </Pressable>
-                    <Text style={styles.date}>{Math.ceil(attachment.sizeBytes / 1024)} KB</Text>
-                    {board.data?.permissions?.work_items?.delete && !issue.data.archivedAt ? (
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`Delete ${attachment.filename}`}
-                        style={styles.iconButton}
-                        disabled={removeAttachment.isPending}
-                        onPress={() =>
-                          Alert.alert('Delete attachment?', attachment.filename, [
-                            { text: 'Cancel', style: 'cancel' },
-                            {
-                              text: 'Delete',
-                              style: 'destructive',
-                              onPress: () => removeAttachment.mutate(attachment.id),
-                            },
-                          ])
-                        }
-                      >
-                        <Ionicons name="trash-outline" size={18} color={colors.muted} />
-                      </Pressable>
-                    ) : null}
-                  </View>
-                ))
-              : null}
-          </View>
-        ) : null}
+        <IssueAttachments
+          key={issueId}
+          issueId={issueId}
+          canUpload={canEdit}
+          canDelete={!!board.data?.permissions?.work_items?.delete && !issue.data.archivedAt}
+        />
         {canReadChecklists ? (
           <View
             onLayout={(event) => {

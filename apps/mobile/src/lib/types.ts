@@ -12,6 +12,8 @@ export interface Project {
   description: string;
   checklistsEnabled?: boolean;
   timeLoggingEnabled?: boolean;
+  pointsEstimateEnabled?: boolean;
+  timeEstimateEnabled?: boolean;
   initiativesEnabled?: boolean;
   cyclesEnabled?: boolean;
   isFavorite: boolean;
@@ -56,6 +58,8 @@ export interface ProjectBoard {
     | 'description'
     | 'checklistsEnabled'
     | 'timeLoggingEnabled'
+    | 'pointsEstimateEnabled'
+    | 'timeEstimateEnabled'
     | 'initiativesEnabled'
     | 'cyclesEnabled'
   >;
@@ -96,6 +100,7 @@ export interface Issue {
   cycle: { id: number; name: string; status: string } | null;
   labelIds: number[];
   assigneeUserId: string | null;
+  delegateUserId?: string | null;
   priority: Priority;
   startDate: string | null;
   dueDate: string | null;

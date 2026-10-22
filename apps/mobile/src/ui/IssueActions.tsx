@@ -83,7 +83,7 @@ export function IssueActions({
             options={[
               { value: null, label: 'Unassigned' },
               ...board.assignees
-                .filter((person) => person.canReadWorkItems)
+                .filter((person) => person.kind === 'member')
                 .map((person) => ({ value: person.userId, label: person.name })),
             ]}
             onChange={(assigneeUserId) => save({ assigneeUserId })}

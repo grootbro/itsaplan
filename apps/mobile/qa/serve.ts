@@ -28,7 +28,7 @@ const result = await Bun.build({
         build.onResolve(
           {
             filter:
-              /^(expo-router|expo-secure-store|expo-haptics|expo-linking|expo-document-picker|expo-file-system|expo\/fetch|react-native-safe-area-context|@react-native-community\/datetimepicker|@expo\/vector-icons)$/,
+              /^(@react-navigation\/native|expo-router|expo-secure-store|expo-haptics|expo-linking|expo-document-picker|expo-file-system|expo\/fetch|react-native-safe-area-context|@react-native-community\/datetimepicker|@expo\/vector-icons)$/,
           },
           () => ({ path: bridge }),
         );

@@ -1,7 +1,6 @@
 import { API_URL, authClient } from './auth';
 import { inboxProjectId, type InboxScope } from './inbox-scope';
-import { File } from 'expo-file-system';
-import { fetch as expoFetch } from 'expo/fetch';
+import { nativeUploadPart, type PickedAttachment } from './attachments';
 import type {
   Attachment,
   FeedItem,
@@ -101,15 +100,18 @@ export const api = {
       title: string;
       description: string;
       columnId: number;
-      typeId?: number;
+      typeId?: number | null;
       parentId?: number;
       cycleId?: number | null;
       initiativeId?: number | null;
       assigneeUserId?: string | null;
+      delegateUserId?: string | null;
       priority?: string | null;
       dueDate?: string | null;
+      startDate?: string | null;
       labelIds?: number[];
       estimatePoints?: number | null;
+      estimateMinutes?: number | null;
     },
   ) =>
     request<Issue>(`/projects/${encodeURIComponent(key)}/issues`, {
@@ -127,10 +129,12 @@ export const api = {
         | 'typeId'
         | 'priority'
         | 'assigneeUserId'
+        | 'delegateUserId'
         | 'startDate'
         | 'dueDate'
         | 'labelIds'
         | 'estimatePoints'
+        | 'estimateMinutes'
       >
     > & { cycleId?: number | null; initiativeId?: number | null },
   ) => request<Issue>(`/issues/${id}`, { method: 'PATCH', body: json(body) }),
@@ -143,16 +147,19 @@ export const api = {
       `/issues/${id}/feed?limit=50${cursor ? `&cursor=${encodeURIComponent(JSON.stringify(cursor))}` : ''}`,
     ),
   attachments: (id: number) => request<Attachment[]>(`/issues/${id}/attachments`),
+  storageSettings: () =>
+    request<{ maxAttachmentMb: number; attachmentMimeTypes: string[] }>('/settings/storage'),
   deleteAttachment: (publicId: string) =>
     request<void>(`/attachments/${encodeURIComponent(publicId)}`, {
       method: 'DELETE',
     }),
-  uploadAttachment: async (id: number, uri: string) => {
-    const file = new File(uri);
+  uploadAttachment: async (id: number, file: PickedAttachment) => {
+    if (!file.uri || !file.name || file.size === 0)
+      throw new ApiError(400, 'Choose a non-empty file.');
     const form = new FormData();
-    form.append('file', file);
+    form.append('file', nativeUploadPart(file));
     const cookie = await authClient.getCookie();
-    const response = await expoFetch(`${API_URL}/issues/${id}/attachments`, {
+    const response = await fetch(`${API_URL}/issues/${id}/attachments`, {
       method: 'POST',
       credentials: 'omit',
       headers: {

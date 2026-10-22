@@ -88,3 +88,19 @@ export const SectionList = forwardRef<WebSectionList, ComponentProps<typeof WebS
     );
   },
 );
+
+// Alert decisions are browser dialogs in this fixture; UIKit presentation is not covered.
+export const Alert = {
+  alert(
+    title: string,
+    message?: string,
+    buttons?: { text?: string; style?: string; onPress?: () => void }[],
+  ) {
+    if (!buttons?.length) {
+      window.alert(`${title}\n${message ?? ''}`);
+      return;
+    }
+    const action = buttons.find((button) => button.style !== 'cancel');
+    if (window.confirm(`${title}\n${message ?? ''}`)) action?.onPress?.();
+  },
+};

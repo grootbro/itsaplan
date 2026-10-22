@@ -5,6 +5,7 @@ import * as Linking from 'expo-linking';
 import type { MarkedToken, Token, Tokens } from 'marked';
 import { API_URL } from '@/lib/auth';
 import { markdownTokens, markdownUrl, markdownTextValue } from '@/lib/markdown';
+import { AttachmentImage } from './AttachmentImage';
 import { useThemedStyles, type Palette } from './theme';
 
 export function MarkdownText({ children }: { children: string }) {
@@ -105,12 +106,41 @@ export function MarkdownText({ children }: { children: string }) {
             </Text>
           );
         case 'paragraph':
-        case 'text':
-          return (
-            <Text key={index} selectable style={styles.body}>
-              {token.tokens ? inline(token.tokens) : markdownTextValue(token.text)}
-            </Text>
-          );
+        case 'text': {
+          if (!token.tokens?.some((part) => part.type === 'image'))
+            return (
+              <Text key={index} selectable style={styles.body}>
+                {token.tokens ? inline(token.tokens) : markdownTextValue(token.text)}
+              </Text>
+            );
+          const parts: ReactNode[] = [];
+          let text: Token[] = [];
+          const flush = () => {
+            if (text.length)
+              parts.push(
+                <Text key={parts.length} selectable style={styles.body}>
+                  {inline(text)}
+                </Text>,
+              );
+            text = [];
+          };
+          for (const part of token.tokens) {
+            if (part.type !== 'image') {
+              text.push(part);
+              continue;
+            }
+            flush();
+            parts.push(
+              <AttachmentImage
+                key={parts.length}
+                source={part.href}
+                label={markdownTextValue(part.text) || 'Image attachment'}
+              />,
+            );
+          }
+          flush();
+          return <View key={index}>{parts}</View>;
+        }
         case 'code':
           return (
             <View key={index} style={styles.codeBlock}>

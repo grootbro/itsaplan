@@ -1,3 +1,4 @@
+import type { Attachment, FeedItem } from '../src/lib/types';
 import type { Page } from '@playwright/test';
 
 export async function installFixture(
@@ -8,6 +9,8 @@ export async function installFixture(
     fail?: boolean;
     delay?: number;
     planning?: boolean;
+    saveFailure?: boolean;
+    uploadFailure?: boolean;
   } = {},
 ) {
   const today = new Date().toISOString().slice(0, 10);
@@ -25,8 +28,15 @@ export async function installFixture(
     isHidden: false,
     cyclesEnabled: !!options.planning,
     initiativesEnabled: !!options.planning,
+    pointsEstimateEnabled: true,
+    timeEstimateEnabled: true,
     permissions: {
-      work_items: { read: true, create: !options.readonly, edit: !options.readonly },
+      work_items: {
+        read: true,
+        create: !options.readonly,
+        edit: !options.readonly,
+        delete: !options.readonly,
+      },
       cycles: { read: true, create: !options.readonly, edit: !options.readonly },
       initiatives: { read: true, create: !options.readonly, edit: !options.readonly },
     },
@@ -115,6 +125,11 @@ export async function installFixture(
     updatedAt: today,
     progress: { completed: 0, canceled: 0, total: 28 },
   };
+  const patches: Record<string, unknown>[] = [];
+  const attachments: Attachment[] = [];
+  const comments: FeedItem[] = [];
+  const uploads: { filename: string; contentType: string }[] = [];
+  let uploadAttempts = 0;
   let writes = 0;
   const failures: string[] = [];
   await page.route('**/*', async (route) => {
@@ -131,7 +146,9 @@ export async function installFixture(
     let payload: unknown;
     if (options.fail && path.includes('/projects/'))
       return route.fulfill({ status: 503, json: { error: 'Synthetic outage' } });
-    if (path === '/projects') payload = projects;
+    if (path === '/settings/storage')
+      payload = { maxAttachmentMb: 20, attachmentMimeTypes: ['application/pdf', 'image/png'] };
+    else if (path === '/projects') payload = projects;
     else if (/^\/projects\/[^/]+$/.test(path)) {
       const project = projects.find((project) => project.ref === path.split('/')[2]);
       if (!project)
@@ -141,6 +158,7 @@ export async function installFixture(
         columns,
         assignees: [
           { userId: 'fixture-user', name: 'Fixture user', kind: 'member', canReadWorkItems: true },
+          { userId: 'fixture-agent', name: 'Fixture agent', kind: 'agent', canReadWorkItems: true },
         ],
         issueTypes: [{ id: 1, name: 'Task', isDefault: true }],
         labels: [],
@@ -204,23 +222,75 @@ export async function installFixture(
     } else if (path.endsWith('/issues/board'))
       payload = { issues: byProject.get(path.split('/')[2]) ?? [] };
     else if (path.endsWith('/issues/archived')) payload = [];
-    else if (/^\/issues\/\d+$/.test(path)) {
+    else if (/^\/projects\/[^/]+\/issues$/.test(path) && request.method() === 'POST') {
+      writes++;
+      const row = { ...rows[0], ...request.postDataJSON(), id: 99, identifier: 'PLAN-99' };
+      byProject.get(path.split('/')[2])?.push(row);
+      payload = row;
+    } else if (/^\/issues\/\d+$/.test(path)) {
       const row = [...byProject.values()]
         .flat()
         .find((row) => row.id === Number(path.split('/')[2]));
       if (request.method() === 'PATCH') {
         writes++;
+        patches.push(request.postDataJSON());
         await new Promise((resolve) => setTimeout(resolve, 300));
+        if (options.saveFailure)
+          return route.fulfill({ status: 400, json: { error: 'Synthetic validation failed' } });
         Object.assign(row ?? {}, request.postDataJSON());
       }
       payload = row;
-    } else if (path.endsWith('/feed')) payload = { items: [], nextCursor: null };
-    else if (path.endsWith('/attachments') || path.endsWith('/worklogs')) payload = [];
+    } else if (path.endsWith('/feed')) payload = { items: comments, nextCursor: null };
+    else if (/^\/issues\/\d+\/comments$/.test(path) && request.method() === 'POST') {
+      writes++;
+      const body = request.postDataJSON();
+      comments.push({
+        id: comments.length + 1,
+        actorUserId: 'fixture-user',
+        actorName: 'Fixture user',
+        kind: 'comment',
+        body: body.body,
+        replyToId: body.replyToId ?? null,
+        editedAt: null,
+        action: null,
+        createdAt: new Date().toISOString(),
+      });
+      payload = comments.at(-1);
+    } else if (path.endsWith('/attachments')) {
+      if (request.method() === 'POST') {
+        uploadAttempts++;
+        const form = await new Request(url, {
+          method: 'POST',
+          headers: request.headers(),
+          body: request.postDataBuffer(),
+        }).formData();
+        const file = form.get('file') as File;
+        uploads.push({ filename: file.name, contentType: file.type });
+        if (options.uploadFailure && uploadAttempts === 1)
+          return route.fulfill({ status: 415, json: { error: 'Synthetic unsupported file' } });
+        const id = String(attachments.length + 1);
+        const entry = {
+          id,
+          filename: file.name,
+          contentType: file.type,
+          sizeBytes: file.size,
+          createdAt: new Date().toISOString(),
+          url: `/attachments/${id}/raw`,
+        };
+        attachments.push(entry);
+        payload = entry;
+      } else payload = attachments;
+    } else if (/^\/attachments\/[^/]+$/.test(path) && request.method() === 'DELETE') {
+      const id = path.split('/')[2];
+      const index = attachments.findIndex((file) => file.id === id);
+      if (index >= 0) attachments.splice(index, 1);
+      return route.fulfill({ status: 204 });
+    } else if (path.endsWith('/worklogs')) payload = [];
     else {
       failures.push(`Unhandled fixture request: ${request.method()} ${path}`);
       return route.fulfill({ status: 500, json: { error: 'Unhandled fixture request' } });
     }
     return route.fulfill({ json: payload });
   });
-  return { options, writes: () => writes, failures };
+  return { options, writes: () => writes, failures, patches, uploads };
 }

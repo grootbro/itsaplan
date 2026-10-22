@@ -1,7 +1,27 @@
-import { useSyncExternalStore, type ReactNode } from 'react';
+import { useEffect, useSyncExternalStore, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import glyphs from '@expo/vector-icons/build/vendor/react-native-vector-icons/glyphmaps/Ionicons.json';
 
+// This exercises guarded button navigation only; native gestures require device acceptance.
+const guards = new Set<(action: () => void) => void>();
+const guarded = (action: () => void) => {
+  const guard = [...guards].at(-1);
+  if (guard) guard(action);
+  else action();
+};
+export function usePreventRemove(
+  enabled: boolean,
+  callback: (event: { data: { action: () => void } }) => void,
+) {
+  useEffect(() => {
+    if (!enabled) return;
+    const guard = (action: () => void) => callback({ data: { action } });
+    guards.add(guard);
+    return () => {
+      guards.delete(guard);
+    };
+  }, [enabled, callback]);
+}
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((listener) => listener());
 window.addEventListener('popstate', notify);
@@ -31,7 +51,7 @@ function navigate(
 export const router = {
   push: navigate,
   replace: (target: Parameters<typeof navigate>[0]) => navigate(target, true),
-  back: () => window.history.back(),
+  back: () => guarded(() => window.history.back()),
   setParams: (params: Record<string, string>) => {
     const url = new URL(window.location.href);
     for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
@@ -40,7 +60,7 @@ export const router = {
   },
 };
 export const useRouter = () => router;
-const navigation = { setOptions: () => {} };
+const navigation = { setOptions: () => {}, dispatch: (action: () => void) => action() };
 export const useNavigation = () => navigation;
 export function useLocalSearchParams() {
   const url = new URL(useLocation());
@@ -63,7 +83,30 @@ export const SafeAreaView = View;
 export const notificationAsync = async () => {};
 export const NotificationFeedbackType = { Success: 'success' };
 export const openURL = async (url: string) => window.open(url, '_blank', 'noopener');
-export const getDocumentAsync = async () => ({ canceled: true });
+declare global {
+  interface Window {
+    fixtureFiles?: { uri: string; name: string; mimeType?: string; size?: number }[];
+  }
+}
+export const getDocumentAsync = async () =>
+  window.fixtureFiles?.length
+    ? { canceled: false, assets: window.fixtureFiles }
+    : { canceled: true };
+// Browser fixture adapter for RN's native URI descriptor. This does not validate iOS multipart.
+const BrowserFormData = window.FormData;
+class FixtureFormData extends BrowserFormData {
+  append(
+    name: string,
+    value: string | Blob | { uri: string; name: string; type: string },
+    filename?: string,
+  ) {
+    if (typeof value === 'object' && 'uri' in value)
+      super.append(name, new Blob(['fixture file'], { type: value.type }), value.name);
+    else if (value instanceof Blob && filename !== undefined) super.append(name, value, filename);
+    else super.append(name, value as string | Blob);
+  }
+}
+window.FormData = FixtureFormData;
 export class File {}
 export const fetch = window.fetch.bind(window);
 export function Ionicons({ name, size, color }: { name: string; size: number; color: string }) {

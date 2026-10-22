@@ -20,3 +20,15 @@ or physical iPhone/iPad/Android acceptance. Those remain separate native checks.
 
 The fixture and its tools are excluded from native TypeScript compilation and EAS uploads.
 Production routing and API code contain no test bypass flags.
+
+The core task scenarios exercise the real create/edit form, changed-field PATCH payload,
+failed-save draft retention, member/agent choices, duplicate submit prevention, Markdown
+preview, comment creation, read-only controls, upload metadata and per-file failures.
+The fixture maps `usePreventRemove` to its Back button and native Alert decisions to browser
+confirm dialogs. Browser Back/Forward is only history behavior; native swipes need acceptance.
+Its FormData adapter converts the native URI descriptor into synthetic bytes with the same
+filename and MIME. This verifies metadata handling, not native transport or provider access.
+
+The separate cloud export job compiles iOS and Android JavaScript/assets through Expo Metro.
+It does not produce a signed binary or validate native module linking. Expo export options:
+https://docs.expo.dev/more/expo-cli/#exporting

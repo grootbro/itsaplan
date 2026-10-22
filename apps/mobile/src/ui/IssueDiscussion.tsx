@@ -1,13 +1,14 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { api } from '@/lib/api';
 import { activityRows, canManageEntry } from '@/lib/collaboration';
 import type { FeedItem } from '@/lib/types';
 import { Action, Loading } from './primitives';
+import { MarkdownField } from './MarkdownField';
 import { MarkdownText } from './MarkdownText';
 import { Choices, NativeSheet, Notice } from './work-controls';
-import { useColors, useThemedStyles, type Palette } from './theme';
+import { useThemedStyles, type Palette } from './theme';
 
 type Composer = { mode: 'new' | 'reply' | 'edit'; target?: FeedItem };
 export function IssueDiscussion({
@@ -21,11 +22,12 @@ export function IssueDiscussion({
   owner: boolean;
   userId?: string;
 }) {
-  const colors = useColors();
   const styles = useThemedStyles(createStyles);
   const client = useQueryClient();
   const [mode, setMode] = useState<'all' | 'comments'>('all');
   const [composer, setComposer] = useState<Composer | null>(null);
+  const submitting = useRef(false);
+  const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const feed = useInfiniteQuery({
     queryKey: ['feed', issueId],
@@ -44,7 +46,10 @@ export function IssueDiscussion({
       setComposer(null);
       await refresh();
     },
-    onError: (error) => Alert.alert('Could not save comment', error.message),
+    onError: (failure) => setError(failure.message),
+    onSettled: () => {
+      submitting.current = false;
+    },
   });
   const remove = useMutation({
     mutationFn: api.deleteComment,
@@ -52,11 +57,12 @@ export function IssueDiscussion({
     onError: (error) => Alert.alert('Could not delete comment', error.message),
   });
   const open = (editor: Composer) => {
+    setError(null);
     setComposer(editor);
     setDraft(editor.mode === 'edit' ? (editor.target?.body ?? '') : '');
   };
   const close = () => {
-    if (save.isPending) return;
+    if (submitting.current) return;
     const initial = composer?.mode === 'edit' ? (composer.target?.body ?? '') : '';
     if (draft !== initial)
       Alert.alert('Discard comment changes?', 'Your unsaved text will be lost.', [
@@ -208,16 +214,14 @@ export function IssueDiscussion({
               </Text>
             </View>
           ) : null}
-          <TextInput
-            accessibilityLabel="Comment text"
-            editable={!save.isPending}
+          {error ? <Notice message={error} /> : null}
+          <MarkdownField
+            issueId={issueId}
+            label="Comment text"
             value={draft}
             onChangeText={setDraft}
-            multiline
-            maxLength={50_000}
+            editable={!save.isPending && canEdit}
             placeholder="Write a comment…"
-            placeholderTextColor={colors.muted}
-            style={styles.editor}
           />
           <Text style={styles.hint}>Use @username to mention a member or agent.</Text>
           <Action
@@ -230,8 +234,11 @@ export function IssueDiscussion({
             }
             disabled={save.isPending || !draft.trim() || !canEdit}
             onPress={() => {
-              if (draft.trim() && !save.isPending && canEdit)
+              if (draft.trim() && !submitting.current && canEdit) {
+                submitting.current = true;
+                setError(null);
                 save.mutate({ editor: composer, body: draft.trim() });
+              }
             }}
           />
         </NativeSheet>

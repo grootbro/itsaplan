@@ -87,6 +87,23 @@ jobs:
             /tmp/mobile-ui-report
             /tmp/mobile-ui-results
 
+  mobile-bundle:
+    name: Export native mobile bundles
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile --ignore-scripts --filter mobile
+      - name: Export iOS JavaScript and assets
+        working-directory: apps/mobile
+        run: bun run expo export --platform ios --output-dir "$RUNNER_TEMP/mobile-ios-export"
+      - name: Export Android JavaScript and assets
+        working-directory: apps/mobile
+        run: bun run expo export --platform android --output-dir "$RUNNER_TEMP/mobile-android-export"
+
   build:
     name: Build apps
     runs-on: ubuntu-latest
