@@ -1,0 +1,44 @@
+name: PR411 reconciliation web QA
+on:
+  push:
+    branches: [qa/pr411-reconcile-oct22]
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      API_URL: https://example.test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - run: bun install --frozen-lockfile --filter=web --filter=dev-plane
+      - name: Read installed Next guide and format changed source
+        run: |
+          mkdir -p /tmp/pr411-evidence
+          cat apps/web/node_modules/next/dist/docs/01-app/03-api-reference/01-directives/use-client.mdx > /tmp/pr411-evidence/next-use-client.txt
+          bunx prettier --write apps/web/src/features/inbox/components/InboxToolbar.tsx apps/web/messages/zh-TW/filters.json apps/web/messages/zh-TW/dashboards.json apps/web/messages/zh-TW/issue.json
+      - name: Lint and types
+        run: |
+          set -o pipefail
+          bunx turbo run lint typecheck --filter=web --concurrency=1 2>&1 | tee /tmp/pr411-evidence/quality.log
+      - name: Full web tests
+        run: |
+          set -o pipefail
+          bunx turbo run test --filter=web --concurrency=1 2>&1 | tee /tmp/pr411-evidence/web.log
+      - name: Capture tested source
+        run: |
+          bunx prettier --check apps/web/src/features/inbox/components/InboxToolbar.tsx apps/web/messages/zh-TW/filters.json apps/web/messages/zh-TW/dashboards.json apps/web/messages/zh-TW/issue.json
+          git add apps/web/src/features/inbox/components/InboxToolbar.tsx apps/web/messages/zh-TW/filters.json apps/web/messages/zh-TW/dashboards.json apps/web/messages/zh-TW/issue.json
+          git update-index --force-remove .github/workflows/pr411-web-qa.yml
+          git write-tree > /tmp/pr411-evidence/source-tree.txt
+          tar czf /tmp/pr411-evidence/formatted-source.tgz apps/web/src/features/inbox/components/InboxToolbar.tsx apps/web/messages/zh-TW/filters.json apps/web/messages/zh-TW/dashboards.json apps/web/messages/zh-TW/issue.json
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: pr411-evidence
+          path: /tmp/pr411-evidence
+          retention-days: 14
