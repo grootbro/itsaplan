@@ -14,7 +14,7 @@ export default function appConfig({ config }: ConfigContext): ExpoConfig {
     ios: {
       supportsTablet: true,
       requireFullScreen: false,
-      buildNumber: '7',
+      buildNumber: '8',
       ...(process.env.IOS_BUNDLE_IDENTIFIER
         ? { bundleIdentifier: process.env.IOS_BUNDLE_IDENTIFIER }
         : {}),
