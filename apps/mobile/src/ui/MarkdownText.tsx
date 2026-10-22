@@ -132,7 +132,7 @@ export function MarkdownText({ children }: { children: string }) {
             flush();
             parts.push(
               <AttachmentImage
-                key={parts.length}
+                key={`${parts.length}:${part.href}`}
                 source={part.href}
                 label={markdownTextValue(part.text) || 'Image attachment'}
               />,

@@ -19,6 +19,7 @@ export function IssueEditor({
   board,
   projectRef,
   issueId,
+  creatingSubtask = false,
   canSave,
   onSubmit,
   onComplete,
@@ -27,6 +28,7 @@ export function IssueEditor({
   board: ProjectBoard;
   projectRef: string;
   issueId?: number;
+  creatingSubtask?: boolean;
   canSave: boolean;
   onSubmit: (draft: IssueDraft, original: IssueDraft) => Promise<Issue>;
   onComplete: (issue: Issue) => void;
@@ -84,7 +86,9 @@ export function IssueEditor({
     submitting.current = true;
     save.mutate({ values: { ...draft, labelIds: [...draft.labelIds] } });
   };
-  let submitLabel = issueId ? 'Save changes' : 'Create issue';
+  let submitLabel = 'Create issue';
+  if (creatingSubtask) submitLabel = 'Create subtask';
+  if (issueId) submitLabel = 'Save changes';
   if (save.isPending) submitLabel = 'Saving…';
   return (
     <ScrollView
@@ -93,7 +97,10 @@ export function IssueEditor({
       keyboardShouldPersistTaps="handled"
       contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 40 }]}
     >
-      <Text style={styles.project}>{board.project.name}</Text>
+      <Text style={styles.project}>
+        {board.project.name}
+        {creatingSubtask ? ' · New subtask' : ''}
+      </Text>
       {!canSave ? (
         <Notice message="Editing is unavailable. Your unsaved text remains here." />
       ) : null}

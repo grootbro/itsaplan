@@ -45,6 +45,7 @@ export default function NewIssue() {
   return (
     <IssueEditor
       key={`${key}:${parentId ?? ''}`}
+      creatingSubtask={!!parent}
       initial={initial}
       board={context}
       projectRef={key}

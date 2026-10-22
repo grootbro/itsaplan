@@ -487,7 +487,7 @@ export function IssueDetailPanel({
         <IssueAttachments
           key={issueId}
           issueId={issueId}
-          canUpload={canEdit}
+          canUpload={!!canEdit}
           canDelete={!!board.data?.permissions?.work_items?.delete && !issue.data.archivedAt}
         />
         {canReadChecklists ? (

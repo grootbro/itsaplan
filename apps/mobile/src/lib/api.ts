@@ -156,7 +156,9 @@ export const api = {
   uploadAttachment: async (id: number, file: PickedAttachment) => {
     if (!file.uri || !file.name || file.size === 0)
       throw new ApiError(400, 'Choose a non-empty file.');
-    const form = new FormData();
+    const form = new FormData() as FormData & {
+      append(name: string, value: ReturnType<typeof nativeUploadPart>): void;
+    };
     form.append('file', nativeUploadPart(file));
     const cookie = await authClient.getCookie();
     const response = await fetch(`${API_URL}/issues/${id}/attachments`, {
