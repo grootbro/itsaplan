@@ -1,3 +1,4 @@
+import { findProject } from '@/lib/project-reference';
 import { IssueWorkspace, useIssueWorkspace } from '@/ui/IssueWorkspace';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
@@ -14,7 +15,7 @@ export default function Inbox() {
   const queryClient = useQueryClient();
   const { projectKey, inboxAll, setInboxAll } = useProjectScope();
   const projects = useQuery({ queryKey: ['projects'], queryFn: api.projects });
-  const project = projects.data?.find((item) => item.key === projectKey);
+  const project = findProject(projects.data, projectKey);
   const scope = resolveInboxScope(inboxAll, projectKey, projects.data);
   const ready = scope !== null;
   const inbox = useInfiniteQuery({

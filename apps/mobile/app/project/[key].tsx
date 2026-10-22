@@ -1,8 +1,8 @@
 import { IssueWorkspace, useIssueWorkspace } from '@/ui/IssueWorkspace';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   Pressable,
@@ -12,10 +12,12 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { api } from '@/lib/api';
 import { authClient } from '@/lib/auth';
 import {
+  localDay,
   activeFilterCount,
   defaultFilters,
   visibleIssues,
@@ -31,21 +33,69 @@ import { IssueActions } from '@/ui/IssueActions';
 import { IssueFilters } from '@/ui/IssueFilters';
 import { Notice, SearchInput, useWorkStyles } from '@/ui/work-controls';
 import { useColors, useThemedStyles, type Palette } from '@/ui/theme';
+import { useProjectDisplay } from '@/lib/use-project-display';
+import type { ProjectLayout, ProjectScope } from '@/lib/project-display';
+import {
+  ProjectBoardView,
+  ProjectTableView,
+  ProjectCalendarView,
+  type CollectionScroll,
+} from '@/ui/ProjectCollections';
+import { ProjectDisplaySheet, ProjectLayoutPicker } from '@/ui/ProjectDisplaySheet';
 
-export default function Project() {
+export default function ProjectRoute() {
+  const { key, layout } = useLocalSearchParams<{ key: string; layout?: string }>();
+  return <Project key={key} projectKey={key} layoutParam={layout} />;
+}
+
+function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutParam?: string }) {
   const workspace = useIssueWorkspace();
   const colors = useColors();
   const styles = useThemedStyles(createStyles);
   const workStyles = useWorkStyles();
-  const { key } = useLocalSearchParams<{ key: string }>();
   const router = useRouter();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const session = authClient.useSession();
-  const [view, setView] = useState<'all' | 'archive' | number>('all');
-  const [filters, setFilters] = useState<Filters>({ ...defaultFilters });
-  const [sort, setSort] = useState<IssueSort>('updated');
-  const [grouping, setGrouping] = useState<IssueGrouping>('state');
+  const client = useQueryClient();
+  const { height, fontScale } = useWindowDimensions();
+  const userId = session.data?.user.id ?? '';
+  const display = useProjectDisplay(userId, key);
+  const { scope: view, filters, sort, grouping, layout } = display.state;
+  const setView = (scope: ProjectScope) => display.change({ scope });
+  const setFilters = (filters: Filters) => display.change({ filters });
+  const setSort = (sort: IssueSort) => display.change({ sort });
+  const setGrouping = (grouping: IssueGrouping) => display.change({ grouping });
+  const runtimeKey = ['project-runtime', userId, key];
+  const saved = client.getQueryData<{
+    scroll: CollectionScroll;
+    month: string;
+    day: string;
+    unscheduled: boolean;
+  }>(runtimeKey);
+  const scroll = useRef<CollectionScroll>(
+    saved?.scroll ?? { boardX: 0, columns: {}, tableX: 0, tableY: 0, listY: 0, calendarY: 0 },
+  );
+  const [month, setMonth] = useState(saved?.month ?? localDay().slice(0, 7));
+  const [day, setDay] = useState(saved?.day ?? localDay());
+  const [unscheduled, setUnscheduled] = useState(saved?.unscheduled ?? false);
+  const runtime = useRef({ scroll: scroll.current, month, day, unscheduled });
+  runtime.current = { scroll: scroll.current, month, day, unscheduled };
+  useEffect(
+    () => () => {
+      client.setQueryData(['project-runtime', userId, key], runtime.current);
+    },
+    [client, userId, key],
+  );
+  useEffect(() => {
+    if (
+      !display.isPending &&
+      ['board', 'list', 'table', 'calendar'].includes(layoutParam ?? '') &&
+      layoutParam !== layout
+    )
+      display.change({ layout: layoutParam as ProjectLayout });
+  }, [layoutParam, display.isPending]);
+  const [showDisplay, setShowDisplay] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [actionId, setActionId] = useState<number | null>(null);
   const board = useQuery({
@@ -123,15 +173,8 @@ export default function Project() {
   useEffect(() => {
     navigation.setOptions({ title: board.data?.project.name ?? key });
   }, [board.data?.project.name, key, navigation]);
-  useEffect(() => {
-    setView('all');
-    setFilters({ ...defaultFilters });
-    setActionId(null);
-    setShowFilters(false);
-  }, [key]);
-
   const refresh = () => Promise.all([board.refetch(), listQuery.refetch()]);
-  if (board.isPending || issues.isPending) return <Loading />;
+  if (display.isPending || board.isPending || issues.isPending) return <Loading />;
   if ((!board.data && board.isError) || (!issues.data && issues.isError))
     return (
       <View style={styles.screen}>
@@ -141,52 +184,88 @@ export default function Project() {
     );
   if (!board.data) return <Loading />;
 
+  const reset = () => display.change({ scope: 'all', filters: { ...defaultFilters } });
+  const createIssue = (columnId?: number) =>
+    router.push({
+      pathname: '/new-issue/[key]',
+      params: { key, ...(columnId ? { columnId: String(columnId) } : {}) },
+    });
+  const changeLayout = (layout: ProjectLayout) => {
+    display.change({ layout });
+    router.setParams({ layout });
+  };
+  const collection = {
+    issues: visible,
+    board: board.data,
+    selectedId: workspace.selectedId,
+    onOpen: workspace.open,
+    onActions:
+      view !== 'archive' && board.data.permissions.work_items?.edit ? setActionId : undefined,
+    properties: display.state.properties,
+    scroll,
+  };
   const header = (
-    <>
-      <View style={styles.summary}>
-        <Text style={styles.subtitle}>
-          {board.data.project.teamName} · {key}
-        </Text>
-        <Text accessibilityRole="header" style={styles.title}>
-          Work items
-        </Text>
-        <Text style={styles.meta}>
-          {active.length} active · {visible.length} shown
-        </Text>
-      </View>
-      <View style={workStyles.toolbar}>
-        <SearchInput
-          value={filters.query}
-          onChange={(query) => setFilters((current) => ({ ...current, query }))}
-        />
-        <View style={styles.displayRow}>
+    <View style={styles.header}>
+      {height >= 600 ? (
+        <View style={styles.summary}>
+          <Text style={styles.subtitle}>
+            {board.data.project.teamName} · {board.data.project.key}
+          </Text>
+          <Text style={styles.meta}>
+            {view === 'archive' ? `${source.length} archived` : `${active.length} active`} ·{' '}
+            {visible.length} shown
+          </Text>
+        </View>
+      ) : null}
+      <ProjectLayoutPicker value={layout} onChange={changeLayout} />
+      <SearchInput value={filters.query} onChange={(query) => setFilters({ ...filters, query })} />
+      <View style={styles.displayRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Filter issues"
+          onPress={() => setShowFilters(true)}
+          style={styles.filterButton}
+        >
+          <Ionicons name="filter-outline" size={18} color={colors.ink} />
+          <Text style={workStyles.buttonText}>
+            {filterCount ? `Filters · ${filterCount}` : 'Filters'}
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Display options"
+          onPress={() => setShowDisplay(true)}
+          style={styles.filterButton}
+        >
+          <Ionicons name="options-outline" size={18} color={colors.ink} />
+          <Text style={workStyles.buttonText}>Display</Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Refresh issues"
+          accessibilityState={{ disabled: listQuery.isFetching || board.isFetching }}
+          disabled={listQuery.isFetching || board.isFetching}
+          style={styles.refresh}
+          onPress={() => void refresh()}
+        >
+          <Ionicons name="refresh-outline" size={21} color={colors.muted} />
+        </Pressable>
+        {filterCount || view !== 'all' ? (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Filter and display options"
-            onPress={() => setShowFilters(true)}
-            style={styles.filterButton}
+            accessibilityLabel="Reset filters and show all active issues"
+            onPress={reset}
+            style={workStyles.textButton}
           >
-            <Ionicons name="options-outline" size={19} color={colors.ink} />
-            <Text style={workStyles.buttonText}>
-              {filterCount ? `Filters · ${filterCount}` : 'Filter & display'}
-            </Text>
+            <Text style={workStyles.buttonText}>Reset</Text>
           </Pressable>
-          {filterCount ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setFilters({ ...defaultFilters })}
-              style={workStyles.textButton}
-            >
-              <Text style={workStyles.buttonText}>Clear</Text>
-            </Pressable>
-          ) : null}
-        </View>
+        ) : null}
       </View>
       <ScrollView
         horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ flexGrow: 0 }}
+        showsHorizontalScrollIndicator
         contentContainerStyle={styles.states}
+        style={{ flexGrow: 0 }}
       >
         {[
           { value: 'all' as const, name: 'All', count: active.length },
@@ -195,11 +274,16 @@ export default function Project() {
             name: column.name,
             count: active.filter((issue) => issue.columnId === column.id).length,
           })),
+          ...(!['all', 'archive'].includes(String(view)) &&
+          !columns.some((column) => column.id === view)
+            ? [{ value: view, name: 'Unavailable status', count: inView.length }]
+            : []),
           { value: 'archive' as const, name: 'Archive', count: undefined },
         ].map((item) => (
           <Pressable
             key={item.value}
             accessibilityRole="button"
+            accessibilityLabel={`${item.name} issues`}
             accessibilityState={{ selected: view === item.value }}
             onPress={() => setView(item.value)}
             style={[styles.state, view === item.value && styles.stateSelected]}
@@ -211,87 +295,139 @@ export default function Project() {
           </Pressable>
         ))}
       </ScrollView>
-    </>
+    </View>
   );
   return (
-    <IssueWorkspace workspace={workspace}>
+    <IssueWorkspace workspace={workspace} overview>
       <View style={styles.screen}>
-        <SectionList<Issue>
-          sections={sections}
-          keyExtractor={(issue) => String(issue.id)}
-          stickySectionHeadersEnabled={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          contentContainerStyle={{ paddingBottom: insets.bottom + 110, flexGrow: 1 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={listQuery.isRefetching || board.isRefetching}
-              onRefresh={() => void refresh()}
-              tintColor={colors.accent}
-            />
-          }
-          ListHeaderComponent={
-            <>
-              {header}
-              {board.isError || listQuery.isError ? (
-                <Notice
-                  message="Could not refresh. Your loaded work is still here."
-                  onPress={() => void refresh()}
+        {height < 600 || fontScale >= 1.6 ? (
+          <ScrollView
+            accessibilityLabel="Project controls"
+            style={{ maxHeight: Math.max(96, height * 0.4), flexGrow: 0, flexShrink: 0 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {header}
+          </ScrollView>
+        ) : (
+          header
+        )}
+        {display.error ? <Notice message={display.error} /> : null}
+        {board.isError || listQuery.isError ? (
+          <Notice
+            message="Could not refresh. Loaded issues remain available."
+            onPress={() => void refresh()}
+          />
+        ) : null}
+        {filterCount && !visible.length ? (
+          <Notice
+            message="No issues match the current filters."
+            action="Reset filters"
+            onPress={reset}
+          />
+        ) : null}
+        {listQuery.isPending ? (
+          <Loading />
+        ) : !listQuery.data && listQuery.isError ? (
+          <EmptyState title="Issues unavailable" detail="Use Refresh to try again." />
+        ) : layout === 'board' ? (
+          <ProjectBoardView
+            {...collection}
+            grouping={grouping}
+            showEmpty={display.state.showEmptyGroups}
+            allIssues={active}
+            archived={view === 'archive'}
+            onCreate={
+              view !== 'archive' && board.data.permissions.work_items?.create
+                ? createIssue
+                : undefined
+            }
+          />
+        ) : layout === 'table' ? (
+          <ProjectTableView {...collection} />
+        ) : layout === 'calendar' ? (
+          <ProjectCalendarView
+            {...collection}
+            dateField={display.state.calendarDate}
+            weekStart={display.state.weekStart}
+            month={month}
+            setMonth={setMonth}
+            day={day}
+            setDay={setDay}
+            unscheduled={unscheduled}
+            setUnscheduled={setUnscheduled}
+          />
+        ) : (
+          <SectionList<Issue>
+            sections={sections}
+            keyExtractor={(issue) => String(issue.id)}
+            stickySectionHeadersEnabled={false}
+            contentOffset={{ x: 0, y: scroll.current.listY }}
+            onScroll={(event) => {
+              scroll.current.listY = event.nativeEvent.contentOffset.y;
+            }}
+            scrollEventThrottle={100}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            contentContainerStyle={{ paddingBottom: insets.bottom + 110, flexGrow: 1 }}
+            refreshControl={
+              <RefreshControl
+                refreshing={listQuery.isRefetching || board.isRefetching}
+                onRefresh={() => void refresh()}
+                tintColor={colors.accent}
+              />
+            }
+            ListEmptyComponent={
+              view === 'archive' && archived.isPending ? null : (
+                <EmptyState
+                  title={filterCount ? 'No matching issues' : 'No issues here'}
+                  detail={
+                    filterCount
+                      ? 'Clear a filter or search for another term.'
+                      : 'Choose another status, or create a new issue.'
+                  }
                 />
-              ) : null}
-              {view === 'archive' && archived.isPending ? <Loading /> : null}
-            </>
-          }
-          ListEmptyComponent={
-            view === 'archive' && archived.isPending ? null : (
-              <EmptyState
-                title={filterCount ? 'No matching issues' : 'No issues here'}
-                detail={
-                  filterCount
-                    ? 'Clear a filter or search for another term.'
-                    : 'Choose another status, or create a new issue.'
+              )
+            }
+            renderSectionHeader={({ section }) =>
+              section.title ? (
+                <View style={workStyles.section}>
+                  <Text accessibilityRole="header" style={workStyles.sectionTitle}>
+                    {section.title} · {section.data.length}
+                  </Text>
+                </View>
+              ) : null
+            }
+            renderItem={({ item }) => (
+              <IssueRow
+                issue={item}
+                selected={workspace.selectedId === item.id}
+                state={columns.find((column) => column.id === item.columnId)?.name}
+                stateType={columns.find((column) => column.id === item.columnId)?.stateType}
+                stateColor={columns.find((column) => column.id === item.columnId)?.color}
+                assignee={
+                  board.data?.assignees.find((person) => person.userId === item.assigneeUserId)
+                    ?.name
+                }
+                onPress={() => workspace.open(item.id)}
+                onLongPress={
+                  view !== 'archive' && board.data?.permissions.work_items?.edit
+                    ? () => setActionId(item.id)
+                    : undefined
+                }
+                onActions={
+                  view !== 'archive' && board.data?.permissions.work_items?.edit
+                    ? () => setActionId(item.id)
+                    : undefined
                 }
               />
-            )
-          }
-          renderSectionHeader={({ section }) =>
-            section.title ? (
-              <View style={workStyles.section}>
-                <Text accessibilityRole="header" style={workStyles.sectionTitle}>
-                  {section.title} · {section.data.length}
-                </Text>
-              </View>
-            ) : null
-          }
-          renderItem={({ item }) => (
-            <IssueRow
-              issue={item}
-              selected={workspace.selectedId === item.id}
-              state={columns.find((column) => column.id === item.columnId)?.name}
-              stateType={columns.find((column) => column.id === item.columnId)?.stateType}
-              stateColor={columns.find((column) => column.id === item.columnId)?.color}
-              assignee={
-                board.data?.assignees.find((person) => person.userId === item.assigneeUserId)?.name
-              }
-              onPress={() => workspace.open(item.id)}
-              onLongPress={
-                view !== 'archive' && board.data?.permissions.work_items?.edit
-                  ? () => setActionId(item.id)
-                  : undefined
-              }
-              onActions={
-                view !== 'archive' && board.data?.permissions.work_items?.edit
-                  ? () => setActionId(item.id)
-                  : undefined
-              }
-            />
-          )}
-        />
-        {view !== 'archive' && board.data.permissions.work_items?.create ? (
+            )}
+          />
+        )}
+        {view !== 'archive' && board.data.permissions.work_items?.create && columns.length ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Create issue"
-            onPress={() => router.push(`/new-issue/${key}`)}
+            onPress={() => createIssue()}
             style={[styles.fab, { bottom: insets.bottom + 20 }]}
           >
             <Ionicons name="add" size={24} color={colors.onAccent} />
@@ -300,6 +436,7 @@ export default function Project() {
         ) : null}
         {showFilters ? (
           <IssueFilters
+            hideDisplay
             board={board.data}
             filters={filters}
             onChange={setFilters}
@@ -314,7 +451,14 @@ export default function Project() {
             onRetryOptions={retryOptions}
           />
         ) : null}
-        {selectedIssue && board.data.permissions.work_items?.edit ? (
+        {showDisplay ? (
+          <ProjectDisplaySheet
+            state={display.state}
+            onChange={display.change}
+            onClose={() => setShowDisplay(false)}
+          />
+        ) : null}
+        {selectedIssue && !selectedIssue.archivedAt && board.data.permissions.work_items?.edit ? (
           <IssueActions
             key={selectedIssue.id}
             issue={selectedIssue}
@@ -330,13 +474,27 @@ export default function Project() {
 const createStyles = (colors: Palette) =>
   StyleSheet.create({
     screen: { flex: 1, backgroundColor: colors.canvas },
-    summary: { paddingHorizontal: 22, paddingTop: 12, paddingBottom: 22 },
-    subtitle: { color: colors.muted, fontSize: 14, marginBottom: 8 },
-    title: { color: colors.ink, fontSize: 30, fontWeight: '700', letterSpacing: -0.7 },
-    meta: { color: colors.muted, fontSize: 14, marginTop: 6 },
-    displayRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    header: { paddingHorizontal: 16, paddingTop: 6, gap: 8 },
+    summary: {
+      paddingTop: 4,
+      paddingBottom: 2,
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
+    refresh: { minHeight: 48, minWidth: 44, alignItems: 'center', justifyContent: 'center' },
+    subtitle: { color: colors.muted, fontSize: 13 },
+    meta: { color: colors.muted, fontSize: 13 },
+    displayRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+    },
     filterButton: { flexDirection: 'row', alignItems: 'center', minHeight: 48, gap: 8 },
-    states: { paddingHorizontal: 22, paddingBottom: 12, gap: 8 },
+    states: { paddingBottom: 10, gap: 8 },
     state: {
       minHeight: 48,
       borderRadius: 12,

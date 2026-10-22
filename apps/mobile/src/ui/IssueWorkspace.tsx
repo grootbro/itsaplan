@@ -27,13 +27,16 @@ export function useIssueWorkspace() {
 export function IssueWorkspace({
   workspace,
   children,
+  overview = false,
 }: {
   workspace: ReturnType<typeof useIssueWorkspace>;
   children: ReactNode;
+  overview?: boolean;
 }) {
   const colors = useColors();
   const router = useRouter();
   const { split, listWidth, selectedId } = workspace;
+  const showDetail = selectedId !== null || (split && !overview);
   return (
     <View
       onLayout={workspace.measure}
@@ -41,8 +44,8 @@ export function IssueWorkspace({
     >
       <View
         style={{
-          width: split ? listWidth : '100%',
-          flex: split ? undefined : 1,
+          width: split && showDetail ? listWidth : '100%',
+          flex: split && showDetail ? undefined : 1,
           display: !split && selectedId !== null ? 'none' : 'flex',
           minWidth: 0,
         }}
@@ -53,7 +56,7 @@ export function IssueWorkspace({
         style={{
           flex: 1,
           minWidth: 0,
-          display: split || selectedId !== null ? 'flex' : 'none',
+          display: showDetail ? 'flex' : 'none',
           borderLeftWidth: split ? 1 : 0,
           borderLeftColor: colors.line,
         }}

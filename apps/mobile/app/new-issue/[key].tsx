@@ -15,9 +15,14 @@ export default function NewIssue() {
   const successHaptic = useSuccessHaptic();
   const colors = useColors();
   const styles = useThemedStyles(createStyles);
-  const { key, parentId } = useLocalSearchParams<{
+  const {
+    key,
+    parentId,
+    columnId: initialColumnId,
+  } = useLocalSearchParams<{
     key: string;
     parentId?: string;
+    columnId?: string;
   }>();
   const parentIssueId = parentId ? Number(parentId) : null;
   const router = useRouter();
@@ -49,6 +54,7 @@ export default function NewIssue() {
   const [initiativeId, setInitiativeId] = useState<number | null>(null);
   const selected =
     columnId ??
+    board.data?.columns.find((column) => column.id === Number(initialColumnId))?.id ??
     board.data?.columns.find((column) => column.stateType === 'backlog')?.id ??
     board.data?.columns[0]?.id;
   const selectedType =
@@ -102,7 +108,7 @@ export default function NewIssue() {
       keyboardShouldPersistTaps="handled"
     >
       <Text style={styles.eyebrow}>
-        {key} · {parentIssueId ? 'NEW SUBTASK' : 'NEW ISSUE'}
+        {board.data.project.key} · {parentIssueId ? 'NEW SUBTASK' : 'NEW ISSUE'}
       </Text>
       <Field
         label="Title"

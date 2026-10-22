@@ -1,3 +1,4 @@
+import { findProject, projectReference } from '@/lib/project-reference';
 import { IssueWorkspace, useIssueWorkspace } from '@/ui/IssueWorkspace';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -21,14 +22,14 @@ async function searchProjects(
   for (let index = 0; index < projects.length; index += 4) {
     const batch = projects.slice(index, index + 4);
     const responses = await Promise.allSettled(
-      batch.map((project) => api.search(project.key, term)),
+      batch.map((project) => api.search(projectReference(project), term)),
     );
     responses.forEach((response, offset) => {
       if (response.status === 'fulfilled') {
         items.push(
           ...response.value.map((issue) => ({
             ...issue,
-            projectKey: batch[offset].key,
+            projectKey: projectReference(batch[offset]),
           })),
         );
       } else {
@@ -52,12 +53,13 @@ export default function Search() {
   const readable = (projects.data ?? []).filter(
     (project) => project.permissions?.work_items?.read !== false,
   );
-  const key = readable.find((project) => project.key === projectKey)?.key ?? readable[0]?.key;
+  const selectedProject = findProject(readable, projectKey) ?? readable[0];
+  const key = selectedProject ? projectReference(selectedProject) : undefined;
   const results = useQuery({
-    queryKey: ['search', allProjects ? 'all' : key, submitted],
+    queryKey: ['search', allProjects ? readable.map(projectReference).sort() : key, submitted],
     queryFn: () =>
       searchProjects(
-        allProjects ? readable : readable.filter((project) => project.key === key),
+        allProjects ? readable : readable.filter((project) => projectReference(project) === key),
         submitted,
       ),
     enabled: !!submitted && !!projects.data && (allProjects || !!key),
@@ -111,22 +113,22 @@ export default function Search() {
               accessibilityRole="button"
               key={project.id}
               onPress={() => {
-                selectProject(project.key);
+                selectProject(projectReference(project));
                 setAllProjects(false);
                 setSubmitted('');
               }}
               style={[
                 styles.project,
-                !allProjects && key === project.key && styles.selectedProject,
+                !allProjects && key === projectReference(project) && styles.selectedProject,
               ]}
             >
               <Text
                 style={[
                   styles.projectText,
-                  !allProjects && key === project.key && styles.selectedText,
+                  !allProjects && key === projectReference(project) && styles.selectedText,
                 ]}
               >
-                {project.key}
+                {project.teamName} · {project.key}
               </Text>
             </Pressable>
           ))}

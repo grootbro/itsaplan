@@ -5,6 +5,8 @@ export interface Project {
   id: number;
   teamId: number;
   teamName: string;
+  teamRef?: string;
+  ref?: string;
   key: string;
   name: string;
   description: string;
@@ -30,6 +32,8 @@ export interface Column {
   color: string;
   position: number;
   stateType: string;
+  wipLimit?: number | null;
+  wipMode?: string;
 }
 
 export interface Assignee {
@@ -46,6 +50,8 @@ export interface ProjectBoard {
     | 'teamId'
     | 'teamName'
     | 'key'
+    | 'ref'
+    | 'teamRef'
     | 'name'
     | 'description'
     | 'checklistsEnabled'

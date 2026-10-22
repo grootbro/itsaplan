@@ -1,3 +1,4 @@
+import { projectReference } from '@/lib/project-reference';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
@@ -46,10 +47,11 @@ export function IssueDetailPanel({
   });
   const projects = useQuery({ queryKey: ['projects'], queryFn: api.projects });
   const project = projects.data?.find((project) => project.id === issue.data?.projectId);
+  const projectRef = project ? projectReference(project) : undefined;
   const board = useQuery({
-    queryKey: ['board', project?.key],
-    queryFn: () => api.board(project!.key),
-    enabled: !!project?.key,
+    queryKey: ['board', projectRef],
+    queryFn: () => api.board(projectReference(project!)),
+    enabled: !!projectRef,
   });
   const attachments = useQuery({
     queryKey: ['attachments', issueId],
@@ -99,11 +101,13 @@ export function IssueDetailPanel({
     onSuccess: () =>
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: ['issue', issueId] }),
-        queryClient.invalidateQueries({ queryKey: ['issues', project?.key] }),
+        queryClient.invalidateQueries({
+          queryKey: ['issues'],
+        }),
         queryClient.invalidateQueries({ queryKey: ['assigned'] }),
         queryClient.invalidateQueries({ queryKey: ['search'] }),
         queryClient.invalidateQueries({
-          queryKey: ['archived-issues', project?.key],
+          queryKey: ['archived-issues'],
         }),
       ]),
     onError: (error) => Alert.alert('Could not archive issue', error.message),
@@ -113,11 +117,13 @@ export function IssueDetailPanel({
     onSuccess: () =>
       void Promise.all([
         queryClient.invalidateQueries({ queryKey: ['issue', issueId] }),
-        queryClient.invalidateQueries({ queryKey: ['issues', project?.key] }),
+        queryClient.invalidateQueries({
+          queryKey: ['issues'],
+        }),
         queryClient.invalidateQueries({ queryKey: ['assigned'] }),
         queryClient.invalidateQueries({ queryKey: ['search'] }),
         queryClient.invalidateQueries({
-          queryKey: ['archived-issues', project?.key],
+          queryKey: ['archived-issues'],
         }),
       ]),
     onError: (error) => Alert.alert('Could not restore issue', error.message),
@@ -492,7 +498,7 @@ export function IssueDetailPanel({
                   onPress={() =>
                     router.push({
                       pathname: '/new-issue/[key]',
-                      params: { key: project.key, parentId: String(issueId) },
+                      params: { key: projectReference(project), parentId: String(issueId) },
                     })
                   }
                 >

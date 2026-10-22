@@ -1,3 +1,4 @@
+import { projectReference } from '@/lib/project-reference';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -44,7 +45,7 @@ export default function LinkIssue() {
     projects.data?.filter(
       (project) => project.teamId === ownProject?.teamId && project.permissions?.work_items?.edit,
     ) ?? [];
-  const selectedKey = projectKey ?? ownProject?.key;
+  const selectedKey = projectKey ?? (ownProject ? projectReference(ownProject) : undefined);
   const results = useQuery({
     queryKey: ['link-search', selectedKey, submitted],
     queryFn: () => api.search(selectedKey!, submitted),
@@ -97,12 +98,17 @@ export default function LinkIssue() {
             accessibilityRole="button"
             key={project.id}
             onPress={() => {
-              setProjectKey(project.key);
+              setProjectKey(projectReference(project));
               setSubmitted('');
             }}
-            style={[styles.option, selectedKey === project.key && styles.active]}
+            style={[styles.option, selectedKey === projectReference(project) && styles.active]}
           >
-            <Text style={[styles.optionText, selectedKey === project.key && styles.activeText]}>
+            <Text
+              style={[
+                styles.optionText,
+                selectedKey === projectReference(project) && styles.activeText,
+              ]}
+            >
               {project.name}
             </Text>
           </Pressable>

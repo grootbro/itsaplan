@@ -11,6 +11,7 @@ import { Action } from './primitives';
 
 export function IssueFilters({
   board,
+  hideDisplay = false,
   filters,
   onChange,
   sort,
@@ -24,6 +25,7 @@ export function IssueFilters({
   onRetryOptions,
 }: {
   board: ProjectBoard;
+  hideDisplay?: boolean;
   filters: Filters;
   onChange: (value: Filters) => void;
   sort: IssueSort;
@@ -38,8 +40,22 @@ export function IssueFilters({
 }) {
   const set = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     onChange({ ...filters, [key]: value });
+  const unavailable =
+    (!['any', 'mine', 'unassigned'].includes(filters.assignee) &&
+      !board.assignees.some((person) => person.userId === filters.assignee)) ||
+    (filters.typeId !== null && !board.issueTypes.some((item) => item.id === filters.typeId)) ||
+    (filters.labelId !== null && !board.labels.some((item) => item.id === filters.labelId)) ||
+    (filters.cycleId !== null && !board.project.cyclesEnabled) ||
+    (filters.initiativeId !== null && !board.project.initiativesEnabled);
   return (
-    <NativeSheet visible title="Filter & display" onClose={onClose}>
+    <NativeSheet visible title={hideDisplay ? 'Filters' : 'Filter & display'} onClose={onClose}>
+      {unavailable ? (
+        <Notice
+          message="Some active filters refer to unavailable options. Reset filters if results look incomplete."
+          action="Reset filters"
+          onPress={() => onChange({ ...defaultFilters })}
+        />
+      ) : null}
       <Choices
         label="Assignee"
         value={filters.assignee}
@@ -48,6 +64,10 @@ export function IssueFilters({
           { value: 'mine', label: 'Assigned to me' },
           { value: 'unassigned', label: 'Unassigned' },
           ...board.assignees.map((person) => ({ value: person.userId, label: person.name })),
+          ...(!['any', 'mine', 'unassigned'].includes(filters.assignee) &&
+          !board.assignees.some((person) => person.userId === filters.assignee)
+            ? [{ value: filters.assignee, label: 'Unavailable assignee' }]
+            : []),
         ]}
         onChange={(value) => set('assignee', value)}
       />
@@ -82,16 +102,24 @@ export function IssueFilters({
         options={[
           { value: null, label: 'Any type' },
           ...board.issueTypes.map((type) => ({ value: type.id, label: type.name })),
+          ...(filters.typeId !== null &&
+          !board.issueTypes.some((item) => item.id === filters.typeId)
+            ? [{ value: filters.typeId, label: 'Unavailable type' }]
+            : []),
         ]}
         onChange={(value) => set('typeId', value)}
       />
-      {board.labels.length ? (
+      {board.labels.length || filters.labelId !== null ? (
         <Choices<number | null>
           label="Label"
           value={filters.labelId}
           options={[
             { value: null, label: 'Any label' },
             ...board.labels.map((label) => ({ value: label.id, label: label.name })),
+            ...(filters.labelId !== null &&
+            !board.labels.some((item) => item.id === filters.labelId)
+              ? [{ value: filters.labelId, label: 'Unavailable label' }]
+              : []),
           ]}
           onChange={(value) => set('labelId', value)}
         />
@@ -99,50 +127,61 @@ export function IssueFilters({
       {optionsError ? (
         <Notice message="Could not load cycles or initiatives." onPress={onRetryOptions} />
       ) : null}
-      {board.project.cyclesEnabled ? (
+      {board.project.cyclesEnabled || filters.cycleId !== null ? (
         <Choices<number | null>
           label="Cycle"
           value={filters.cycleId}
           options={[
             { value: null, label: 'Any cycle' },
             ...cycles.map((cycle) => ({ value: cycle.id, label: cycle.name })),
+            ...(filters.cycleId !== null && !cycles.some((item) => item.id === filters.cycleId)
+              ? [{ value: filters.cycleId, label: 'Unavailable cycle' }]
+              : []),
           ]}
           onChange={(value) => set('cycleId', value)}
         />
       ) : null}
-      {board.project.initiativesEnabled ? (
+      {board.project.initiativesEnabled || filters.initiativeId !== null ? (
         <Choices<number | null>
           label="Initiative"
           value={filters.initiativeId}
           options={[
             { value: null, label: 'Any initiative' },
             ...initiatives.map((initiative) => ({ value: initiative.id, label: initiative.title })),
+            ...(filters.initiativeId !== null &&
+            !initiatives.some((item) => item.id === filters.initiativeId)
+              ? [{ value: filters.initiativeId, label: 'Unavailable initiative' }]
+              : []),
           ]}
           onChange={(value) => set('initiativeId', value)}
         />
       ) : null}
-      <Choices<IssueSort>
-        label="Sort by"
-        value={sort}
-        options={[
-          { value: 'updated', label: 'Recently updated' },
-          { value: 'due', label: 'Due date' },
-          { value: 'priority', label: 'Priority' },
-          { value: 'title', label: 'Title' },
-        ]}
-        onChange={setSort}
-      />
-      <Choices<IssueGrouping>
-        label="Group by"
-        value={grouping}
-        options={[
-          { value: 'none', label: 'No grouping' },
-          { value: 'state', label: 'Status' },
-          { value: 'priority', label: 'Priority' },
-          { value: 'assignee', label: 'Assignee' },
-        ]}
-        onChange={setGrouping}
-      />
+      {!hideDisplay ? (
+        <>
+          <Choices<IssueSort>
+            label="Sort by"
+            value={sort}
+            options={[
+              { value: 'updated', label: 'Recently updated' },
+              { value: 'due', label: 'Due date' },
+              { value: 'priority', label: 'Priority' },
+              { value: 'title', label: 'Title' },
+            ]}
+            onChange={setSort}
+          />
+          <Choices<IssueGrouping>
+            label="Group by"
+            value={grouping}
+            options={[
+              { value: 'none', label: 'No grouping' },
+              { value: 'state', label: 'Status' },
+              { value: 'priority', label: 'Priority' },
+              { value: 'assignee', label: 'Assignee' },
+            ]}
+            onChange={setGrouping}
+          />
+        </>
+      ) : null}
       <Action muted label="Reset filters" onPress={() => onChange({ ...defaultFilters })} />
     </NativeSheet>
   );

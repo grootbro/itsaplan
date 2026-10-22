@@ -17,6 +17,7 @@ apps/mobile/.expo/
 apps/mobile/.impeccable/
 apps/mobile/ios/
 apps/mobile/android/
+apps/mobile/qa/
 apps/mobile/.env*
 !apps/mobile/.env.example
 !apps/api

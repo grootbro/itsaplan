@@ -56,6 +56,37 @@ jobs:
       - name: Script tests
         run: bun test scripts/
 
+  mobile-ui:
+    name: Synthetic mobile UI scenarios
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      MOBILE_UI_TOOLS: /tmp/itsaplan-mobile-ui-tools
+      MOBILE_UI_REPORT: /tmp/mobile-ui-report
+      MOBILE_UI_RESULTS: /tmp/mobile-ui-results
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      - run: bun install --frozen-lockfile --ignore-scripts --filter mobile
+      - name: Install isolated browser test tools
+        run: |
+          mkdir -p "$MOBILE_UI_TOOLS"
+          cp apps/mobile/qa/tools/package.json apps/mobile/qa/tools/bun.lock "$MOBILE_UI_TOOLS/"
+          bun install --cwd "$MOBILE_UI_TOOLS" --frozen-lockfile --ignore-scripts
+          ln -s "$MOBILE_UI_TOOLS/node_modules" apps/mobile/qa/node_modules
+          "$MOBILE_UI_TOOLS/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Run synthetic mobile UI scenarios
+        run: '"$MOBILE_UI_TOOLS/node_modules/.bin/playwright" test --config apps/mobile/qa/playwright.config.ts'
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: synthetic-mobile-ui-evidence
+          path: |
+            /tmp/mobile-ui-report
+            /tmp/mobile-ui-results
+
   build:
     name: Build apps
     runs-on: ubuntu-latest

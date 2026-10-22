@@ -1,12 +1,13 @@
+import { findProject } from './project-reference';
 export type InboxScope = 'all' | number | null;
 
 export function resolveInboxScope(
   allProjects: boolean,
   projectKey: string | null,
-  projects: readonly { key: string; id: number }[] | undefined,
+  projects: readonly { key: string; ref?: string; id: number }[] | undefined,
 ): InboxScope {
   if (allProjects) return 'all';
-  return projects?.find((project) => project.key === projectKey)?.id ?? null;
+  return findProject(projects, projectKey)?.id ?? null;
 }
 
 export function inboxProjectId(scope: InboxScope): number | undefined {

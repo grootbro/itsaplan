@@ -1,3 +1,4 @@
+import { projectReference } from '@/lib/project-reference';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -33,19 +34,20 @@ export default function EditIssue() {
   });
   const projects = useQuery({ queryKey: ['projects'], queryFn: api.projects });
   const project = projects.data?.find((item) => item.id === issue.data?.projectId);
+  const projectRef = project ? projectReference(project) : undefined;
   const board = useQuery({
-    queryKey: ['board', project?.key],
-    queryFn: () => api.board(project!.key),
+    queryKey: ['board', projectRef],
+    queryFn: () => api.board(projectReference(project!)),
     enabled: !!project,
   });
   const cycles = useQuery({
-    queryKey: ['cycle-options', project?.key],
-    queryFn: () => api.cycleOptions(project!.key),
+    queryKey: ['cycle-options', projectRef],
+    queryFn: () => api.cycleOptions(projectReference(project!)),
     enabled: !!project && !!board.data?.project.cyclesEnabled,
   });
   const initiatives = useQuery({
-    queryKey: ['initiative-options', project?.key, issue.data?.initiative?.id],
-    queryFn: () => api.initiativeOptions(project!.key, issue.data?.initiative?.id),
+    queryKey: ['initiative-options', projectRef, issue.data?.initiative?.id],
+    queryFn: () => api.initiativeOptions(projectReference(project!), issue.data?.initiative?.id),
     enabled: !!project && !!board.data?.project.initiativesEnabled,
   });
   const [title, setTitle] = useState('');
@@ -109,7 +111,9 @@ export default function EditIssue() {
       successHaptic();
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['issue', issueId] }),
-        queryClient.invalidateQueries({ queryKey: ['issues', project?.key] }),
+        queryClient.invalidateQueries({
+          queryKey: ['issues'],
+        }),
         queryClient.invalidateQueries({ queryKey: ['assigned'] }),
         queryClient.invalidateQueries({ queryKey: ['search'] }),
       ]);

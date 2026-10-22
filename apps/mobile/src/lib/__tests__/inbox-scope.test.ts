@@ -8,6 +8,15 @@ const projects = [
 ];
 
 describe('Inbox scope', () => {
+  it('keeps equal project keys in different teams separate', () => {
+    const sameKey = [
+      { id: 10, key: 'PLAN', ref: 'alpha.PLAN' },
+      { id: 20, key: 'PLAN', ref: 'beta.PLAN' },
+    ];
+    expect(resolveInboxScope(false, 'PLAN', sameKey)).toBeNull();
+    expect(inboxProjectId(resolveInboxScope(false, 'alpha.PLAN', sameKey))).toBe(10);
+    expect(inboxProjectId(resolveInboxScope(false, 'beta.PLAN', sameKey))).toBe(20);
+  });
   it('requires an explicit all-project choice', () => {
     expect(inboxProjectId(resolveInboxScope(true, null, undefined))).toBeUndefined();
     expect(inboxProjectId(resolveInboxScope(true, 'ONE', projects))).toBeUndefined();

@@ -1,3 +1,4 @@
+import { findProject, projectReference } from '@/lib/project-reference';
 import { SearchButton } from '@/ui/SearchButton';
 import { Ionicons } from '@expo/vector-icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -31,7 +32,7 @@ export default function Projects() {
   const [teamId, setTeamId] = useState<number | null>(null);
   const [actionKey, setActionKey] = useState<string | null>(null);
   const query = useQuery({ queryKey: ['projects'], queryFn: api.projects });
-  const selected = query.data?.find((project) => project.key === actionKey);
+  const selected = findProject(query.data, actionKey);
   const update = useMutation({
     mutationFn: ({
       key,
@@ -169,8 +170,8 @@ export default function Projects() {
                 accessibilityRole="button"
                 accessibilityLabel={`Open ${item.name}`}
                 onPress={() => {
-                  selectProject(item.key);
-                  router.push(`/project/${item.key}`);
+                  selectProject(projectReference(item));
+                  router.push(`/project/${projectReference(item)}`);
                 }}
               >
                 <View style={styles.monogram}>
@@ -188,7 +189,7 @@ export default function Projects() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Actions for ${item.name}`}
-                onPress={() => setActionKey(item.key)}
+                onPress={() => setActionKey(projectReference(item))}
                 style={styles.actions}
               >
                 <Ionicons name="ellipsis-horizontal" size={21} color={colors.muted} />
@@ -204,7 +205,10 @@ export default function Projects() {
             label={selected.isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
             disabled={update.isPending}
             onPress={() =>
-              update.mutate({ key: selected.key, patch: { isFavorite: !selected.isFavorite } })
+              update.mutate({
+                key: projectReference(selected),
+                patch: { isFavorite: !selected.isFavorite },
+              })
             }
           />
           <View style={{ height: 16 }} />
@@ -213,7 +217,10 @@ export default function Projects() {
             label={selected.isHidden ? 'Show project' : 'Hide project'}
             disabled={update.isPending}
             onPress={() =>
-              update.mutate({ key: selected.key, patch: { isHidden: !selected.isHidden } })
+              update.mutate({
+                key: projectReference(selected),
+                patch: { isHidden: !selected.isHidden },
+              })
             }
           />
           <Text style={styles.explanation}>

@@ -1,3 +1,4 @@
+import { projectReference } from '@/lib/project-reference';
 import { IssueWorkspace, useIssueWorkspace } from '@/ui/IssueWorkspace';
 import { SearchButton } from '@/ui/SearchButton';
 import { useQuery } from '@tanstack/react-query';
@@ -40,7 +41,7 @@ export default function MyWork() {
     (project) => project.permissions?.work_items?.read !== false,
   );
   const assigned = useQuery({
-    queryKey: ['assigned', userId, readable.map((project) => project.key).sort()],
+    queryKey: ['assigned', userId, readable.map(projectReference).sort()],
     enabled: !!userId && !!projects.data,
     queryFn: async ({ signal }) => {
       const items: AssignedIssue[] = [];
@@ -52,8 +53,8 @@ export default function MyWork() {
         const responses = await Promise.allSettled(
           batch.map(async (project) => {
             const [issues, board] = await Promise.all([
-              api.assignedIssues(project.key, userId!, signal),
-              api.board(project.key, signal),
+              api.assignedIssues(projectReference(project), userId!, signal),
+              api.board(projectReference(project), signal),
             ]);
             return { issues, board };
           }),
@@ -74,8 +75,8 @@ export default function MyWork() {
                 const column = board.columns.find((state) => state.id === issue.columnId);
                 return {
                   ...issue,
-                  projectKey: project.key,
-                  projectName: project.name,
+                  projectKey: projectReference(project),
+                  projectName: `${project.teamName} / ${project.name}`,
                   stateName: column?.name ?? 'Unknown status',
                   stateType: column?.stateType ?? '',
                   stateColor: column?.color,
@@ -228,7 +229,10 @@ export default function MyWork() {
               value={projectKey}
               options={[
                 { value: 'all', label: 'All projects' },
-                ...readable.map((project) => ({ value: project.key, label: project.name })),
+                ...readable.map((project) => ({
+                  value: projectReference(project),
+                  label: `${project.teamName} / ${project.name}`,
+                })),
               ]}
               onChange={setProjectKey}
             />
