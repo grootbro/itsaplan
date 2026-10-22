@@ -115,6 +115,7 @@ export default function EditIssue() {
           queryKey: ['issues'],
         }),
         queryClient.invalidateQueries({ queryKey: ['assigned'] }),
+        queryClient.invalidateQueries({ queryKey: ['planning'] }),
         queryClient.invalidateQueries({ queryKey: ['search'] }),
       ]);
       router.back();

@@ -2,7 +2,13 @@ import type { Page } from '@playwright/test';
 
 export async function installFixture(
   page: Page,
-  options: { empty?: boolean; readonly?: boolean; fail?: boolean; delay?: number } = {},
+  options: {
+    empty?: boolean;
+    readonly?: boolean;
+    fail?: boolean;
+    delay?: number;
+    planning?: boolean;
+  } = {},
 ) {
   const today = new Date().toISOString().slice(0, 10);
   const projects = ['alpha', 'beta'].map((team, index) => ({
@@ -17,7 +23,13 @@ export async function installFixture(
     role: 'owner',
     isFavorite: false,
     isHidden: false,
-    permissions: { work_items: { read: true, create: !options.readonly, edit: !options.readonly } },
+    cyclesEnabled: !!options.planning,
+    initiativesEnabled: !!options.planning,
+    permissions: {
+      work_items: { read: true, create: !options.readonly, edit: !options.readonly },
+      cycles: { read: true, create: !options.readonly, edit: !options.readonly },
+      initiatives: { read: true, create: !options.readonly, edit: !options.readonly },
+    },
   }));
   const columns = [
     { id: 1, name: 'Backlog', stateType: 'backlog', position: 1, color: '#777777', wipLimit: null },
@@ -42,8 +54,8 @@ export async function installFixture(
         description: '## Details\n\nA synthetic fixture task with **formatted text**.',
         columnId: (index % 2) + 1,
         typeId: 1,
-        initiative: null,
-        cycle: null,
+        initiative: options.planning ? { id: 1, title: 'Mobile delivery', status: 'active' } : null,
+        cycle: options.planning ? { id: 1, name: 'October delivery', status: 'active' } : null,
         labelIds: [],
         assigneeUserId: index % 2 ? null : 'fixture-user',
         priority: index % 2 ? 'low' : 'high',
@@ -73,6 +85,36 @@ export async function installFixture(
       })),
     ]),
   );
+  const initiatives = Array.from({ length: 26 }, (_, index) => ({
+    id: index + 1,
+    projectId: 1,
+    title: index === 0 ? 'Mobile delivery' : `Initiative ${index + 1}`,
+    description: '## Initiative overview\n\nSynthetic planning description.',
+    status: 'active',
+    ownerUserId: null,
+    priority: null,
+    startDate: today,
+    targetDate: today,
+    labelIds: [],
+    position: index,
+    createdAt: today,
+    updatedAt: today,
+    progress: { completed: 0, canceled: 0, total: index === 0 ? 28 : 0 },
+    health: null,
+  }));
+  const cycle = {
+    id: 1,
+    projectId: 1,
+    name: 'October delivery',
+    goal: 'Ship a tested mobile release.',
+    startDate: today,
+    endDate: today,
+    completedAt: null,
+    status: 'active',
+    createdAt: today,
+    updatedAt: today,
+    progress: { completed: 0, canceled: 0, total: 28 },
+  };
   let writes = 0;
   const failures: string[] = [];
   await page.route('**/*', async (route) => {
@@ -105,6 +147,60 @@ export async function installFixture(
         customFields: [],
         permissions: project.permissions,
       };
+    } else if (path.endsWith('/cycles/options'))
+      payload = [{ id: cycle.id, name: cycle.name, status: cycle.status }];
+    else if (path.endsWith('/initiatives/options'))
+      payload = initiatives.map(({ id, title, status }) => ({ id, title, status }));
+    else if (path.endsWith('/cycles/completed')) {
+      const pageNumber = Number(url.searchParams.get('page') ?? 1);
+      payload = {
+        items: Array.from({ length: pageNumber === 1 ? 25 : 1 }, (_, index) => ({
+          ...cycle,
+          id: 2 + (pageNumber - 1) * 25 + index,
+          name: `Completed cycle ${1 + (pageNumber - 1) * 25 + index}`,
+          status: 'completed',
+          completedAt: today,
+        })),
+        total: 26,
+        page: pageNumber,
+        pageSize: 25,
+      };
+    } else if (path.endsWith('/cycles')) payload = [cycle];
+    else if (path === '/cycles/1') payload = cycle;
+    else if (/^\/initiatives\/\d+$/.test(path)) {
+      const entry = initiatives.find((entry) => entry.id === Number(path.split('/')[2]));
+      if (request.method() === 'PATCH') {
+        writes++;
+        Object.assign(entry ?? {}, request.postDataJSON());
+      }
+      payload = entry;
+    } else if (path.endsWith('/initiatives')) {
+      if (request.method() === 'POST') {
+        writes++;
+        const entry = {
+          ...initiatives[0],
+          id: initiatives.length + 1,
+          ...request.postDataJSON(),
+          progress: { completed: 0, canceled: 0, total: 0 },
+        };
+        initiatives.push(entry);
+        payload = entry;
+      } else {
+        const term = url.searchParams.get('search') ?? '';
+        const status = url.searchParams.get('status');
+        const matches = initiatives.filter(
+          (entry) =>
+            entry.title.toLowerCase().includes(term.toLowerCase()) &&
+            (!status || entry.status === status),
+        );
+        const pageNumber = Number(url.searchParams.get('page') ?? 1);
+        payload = {
+          items: matches.slice((pageNumber - 1) * 25, pageNumber * 25),
+          total: matches.length,
+          page: pageNumber,
+          pageSize: 25,
+        };
+      }
     } else if (path.endsWith('/issues/board'))
       payload = { issues: byProject.get(path.split('/')[2]) ?? [] };
     else if (path.endsWith('/issues/archived')) payload = [];

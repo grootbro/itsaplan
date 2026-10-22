@@ -10,8 +10,13 @@ const subscribe = (listener: () => void) => {
   return () => listeners.delete(listener);
 };
 export const useLocation = () => useSyncExternalStore(subscribe, () => window.location.href);
-function navigate(target: string | { pathname: string; params: Record<string, string> }) {
-  if (typeof target === 'string') window.history.pushState(null, '', target);
+function navigate(
+  target: string | { pathname: string; params: Record<string, string> },
+  replace = false,
+) {
+  const update = (url: string) =>
+    replace ? window.history.replaceState(null, '', url) : window.history.pushState(null, '', url);
+  if (typeof target === 'string') update(target);
   else {
     const params = { ...target.params };
     const path = target.pathname.replace(/\[(\w+)\]/g, (_, name: string) => {
@@ -19,13 +24,13 @@ function navigate(target: string | { pathname: string; params: Record<string, st
       delete params[name];
       return encodeURIComponent(value);
     });
-    window.history.pushState(null, '', `${path}?${new URLSearchParams(params)}`);
+    update(`${path}?${new URLSearchParams(params)}`);
   }
   notify();
 }
 export const router = {
   push: navigate,
-  replace: navigate,
+  replace: (target: Parameters<typeof navigate>[0]) => navigate(target, true),
   back: () => window.history.back(),
   setParams: (params: Record<string, string>) => {
     const url = new URL(window.location.href);
@@ -40,11 +45,11 @@ export const useNavigation = () => navigation;
 export function useLocalSearchParams() {
   const url = new URL(useLocation());
   const parts = url.pathname.split('/');
-  return {
-    ...Object.fromEntries(url.searchParams),
-    key: decodeURIComponent(parts[2] ?? 'alpha.PLAN'),
-    id: parts[2],
-  };
+  const route =
+    parts[1] === 'planning-detail'
+      ? { kind: parts[2], id: parts[3] }
+      : { key: decodeURIComponent(parts[2] ?? 'alpha.PLAN'), id: parts[2] };
+  return { ...Object.fromEntries(url.searchParams), ...route };
 }
 export const API_URL = `${window.location.origin}/api`;
 const session = { data: { user: { id: 'fixture-user', name: 'Fixture user' } } };
@@ -52,6 +57,7 @@ export const authClient = { useSession: () => session, getCookie: async () => ''
 export const getItemAsync = async (key: string) => window.localStorage.getItem(key);
 export const setItemAsync = async (key: string, value: string) =>
   window.localStorage.setItem(key, value);
+export const deleteItemAsync = async (key: string) => window.localStorage.removeItem(key);
 export const useSafeAreaInsets = () => ({ top: 0, bottom: 0, left: 0, right: 0 });
 export const SafeAreaView = View;
 export const notificationAsync = async () => {};

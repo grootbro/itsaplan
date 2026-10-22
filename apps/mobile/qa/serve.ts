@@ -20,6 +20,9 @@ const result = await Bun.build({
           path: Bun.resolveSync(path, tools),
         }));
         build.onResolve({ filter: /^react-native$/ }, () => ({
+          path: resolve(import.meta.dir, 'native.tsx'),
+        }));
+        build.onResolve({ filter: /^react-native-web$/ }, () => ({
           path: Bun.resolveSync('react-native-web', tools),
         }));
         build.onResolve(

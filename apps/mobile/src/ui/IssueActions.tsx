@@ -27,6 +27,7 @@ export function IssueActions({
         client.invalidateQueries({ queryKey: ['issues'] }),
         client.invalidateQueries({ queryKey: ['issue', issue.id] }),
         client.invalidateQueries({ queryKey: ['assigned'] }),
+        client.invalidateQueries({ queryKey: ['planning'] }),
         client.invalidateQueries({ queryKey: ['search'] }),
         client.invalidateQueries({ queryKey: ['feed', issue.id] }),
       ]);

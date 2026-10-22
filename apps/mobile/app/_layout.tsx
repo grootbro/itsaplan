@@ -73,6 +73,8 @@ function RootNavigator() {
             options={{ title: 'Change password', presentation }}
           />
           <Stack.Screen name="project/[key]" options={{ title: 'Project' }} />
+          <Stack.Screen name="planning/[key]" options={{ title: 'Planning' }} />
+          <Stack.Screen name="planning-detail/[kind]/[id]" options={{ title: 'Planning' }} />
           <Stack.Screen name="issue/[id]" options={{ title: 'Issue' }} />
           <Stack.Screen name="edit-issue/[id]" options={{ title: 'Edit issue', presentation }} />
           <Stack.Screen

@@ -71,6 +71,8 @@ export interface ProjectBoard {
   }[];
   assignees: Assignee[];
   permissions: {
+    cycles?: { read?: boolean; create?: boolean; edit?: boolean; delete?: boolean };
+    initiatives?: { read?: boolean; create?: boolean; edit?: boolean; delete?: boolean };
     work_items?: {
       read?: boolean;
       create?: boolean;

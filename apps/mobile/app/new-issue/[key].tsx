@@ -81,6 +81,7 @@ export default function NewIssue() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['issues', key] }),
         queryClient.invalidateQueries({ queryKey: ['assigned'] }),
+        queryClient.invalidateQueries({ queryKey: ['planning'] }),
         queryClient.invalidateQueries({ queryKey: ['search'] }),
       ]);
       if (parentIssueId)

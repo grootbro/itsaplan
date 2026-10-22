@@ -1,3 +1,4 @@
+import { ProjectMenu } from '@/ui/ProjectMenu';
 import { IssueWorkspace, useIssueWorkspace } from '@/ui/IssueWorkspace';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -95,6 +96,7 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
     )
       display.change({ layout: layoutParam as ProjectLayout });
   }, [layoutParam, display.isPending]);
+  const [showProjectMenu, setShowProjectMenu] = useState(false);
   const [showDisplay, setShowDisplay] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [actionId, setActionId] = useState<number | null>(null);
@@ -106,12 +108,16 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
   const issues = useQuery({
     queryKey: ['issues', key],
     queryFn: () => api.issues(key),
-    enabled: !!key,
+    enabled: !!key && !!board.data && board.data.permissions.work_items?.read !== false,
   });
   const archived = useQuery({
     queryKey: ['archived-issues', key],
     queryFn: () => api.archivedIssues(key),
-    enabled: !!key && view === 'archive',
+    enabled:
+      !!key &&
+      view === 'archive' &&
+      !!board.data &&
+      board.data.permissions.work_items?.read !== false,
   });
   const cycles = useQuery({
     queryKey: ['cycles', key],
@@ -174,8 +180,8 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
     navigation.setOptions({ title: board.data?.project.name ?? key });
   }, [board.data?.project.name, key, navigation]);
   const refresh = () => Promise.all([board.refetch(), listQuery.refetch()]);
-  if (display.isPending || board.isPending || issues.isPending) return <Loading />;
-  if ((!board.data && board.isError) || (!issues.data && issues.isError))
+  if (display.isPending || board.isPending) return <Loading />;
+  if (!board.data && board.isError)
     return (
       <View style={styles.screen}>
         <EmptyState title="Project unavailable" detail="Check your connection, then try again." />
@@ -206,6 +212,18 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
   };
   const header = (
     <View style={styles.header}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Project menu and switcher"
+        onPress={() => setShowProjectMenu(true)}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 }}
+      >
+        <Ionicons name="folder-open-outline" size={20} color={colors.ink} />
+        <Text style={{ flex: 1, color: colors.ink, fontSize: 17, fontWeight: '600' }}>
+          {board.data.project.name}
+        </Text>
+        <Ionicons name="chevron-down" size={18} color={colors.muted} />
+      </Pressable>
       {height >= 600 ? (
         <View style={styles.summary}>
           <Text style={styles.subtitle}>
@@ -325,7 +343,12 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
             onPress={reset}
           />
         ) : null}
-        {listQuery.isPending ? (
+        {board.data.permissions.work_items?.read === false ? (
+          <EmptyState
+            title="Work items unavailable"
+            detail="Open the project menu to access other available sections."
+          />
+        ) : listQuery.isPending ? (
           <Loading />
         ) : !listQuery.data && listQuery.isError ? (
           <EmptyState title="Issues unavailable" detail="Use Refresh to try again." />
@@ -433,6 +456,9 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
             <Ionicons name="add" size={24} color={colors.onAccent} />
             <Text style={styles.fabLabel}>New issue</Text>
           </Pressable>
+        ) : null}
+        {showProjectMenu ? (
+          <ProjectMenu board={board.data} onClose={() => setShowProjectMenu(false)} />
         ) : null}
         {showFilters ? (
           <IssueFilters
