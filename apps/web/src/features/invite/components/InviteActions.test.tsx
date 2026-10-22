@@ -37,7 +37,7 @@ beforeEach(async () => {
       return Response.json({ teamName: 'Example', teamRef: '1.example', projectKey: null, projectName: null, role: null });
     } },
   });
-  client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false, gcTime: 0 } } });
+  client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false, gcTime: Infinity } } });
   for (const key of keys) client.setQueryData(key, []);
   client.setQueryData(['invite', token], { status: 'pending' });
   const { createRoot } = await import('react-dom/client');

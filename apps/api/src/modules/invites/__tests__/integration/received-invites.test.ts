@@ -45,7 +45,7 @@ describe('received invitations', () => {
     expect(result.status).toBe(200);
     expect(result.data?.items).toEqual([{ token: invite.token, teamName: expect.any(String), projectName: 'Marketing' }]);
     expect(result.data?.total).toBe(1);
-    expect(new Headers(result.headers).get('cache-control')).toBe('private, no-store');
+    expect(result.response.headers.get('cache-control')).toBe('private, no-store');
     expect((await client.teams.get()).data?.some((team) => team.id === project.teamId)).toBe(false);
     expect((await client.invites({ token: invite.token }).accept.post()).status).toBe(200);
     expect((await client.me.invites.get()).data?.total).toBe(0);
