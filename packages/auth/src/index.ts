@@ -6,6 +6,7 @@ import { createAuthMiddleware, APIError } from 'better-auth/api';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { passkey } from '@better-auth/passkey';
 import { apiKey } from '@better-auth/api-key';
+import { expo } from '@better-auth/expo';
 import { mcp, openAPI, magicLink, username, genericOAuth } from 'better-auth/plugins';
 import type { GenericOAuthConfig } from 'better-auth/plugins/generic-oauth';
 import * as schema from '@repo/db/schema';
@@ -558,6 +559,7 @@ export const auth = betterAuth({
   },
 
   plugins: [
+    expo(),
     // WebAuthn passkeys, a second sign-in method alongside email + password. A
     // passkey is added to an already signed-in account (passkey.addPasskey) and
     // then used to sign in (signIn.passkey). Adds the `passkey` table.
@@ -648,7 +650,7 @@ export const auth = betterAuth({
   ],
 
   // The frontend runs on a different origin (Next :3001) — allow its requests.
-  trustedOrigins,
+  trustedOrigins: [...trustedOrigins, 'itsaplan://'],
 
   // /is-username-available answers for anyone, and a username is derived from the
   // address, so it would tell a stranger which addresses are registered. Nothing in

@@ -1,0 +1,294 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-20T05:34:42+00:00",
+  "title": "Design System: It's a Plan mobile",
+  "extensions": {
+    "colorMeta": {
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Canvas",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Secondary text",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Separator",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Action accent",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "accentSoft": {
+        "role": "neutral",
+        "displayName": "Soft control fill",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Error and overdue",
+        "tonalRamp": [
+          "oklch(15% 0.12 25)",
+          "oklch(26% 0.12 25)",
+          "oklch(38% 0.12 25)",
+          "oklch(49% 0.12 25)",
+          "oklch(61% 0.12 25)",
+          "oklch(72% 0.12 25)",
+          "oklch(84% 0.12 25)",
+          "oklch(95% 0.12 25)"
+        ]
+      },
+      "urgent": {
+        "role": "tertiary",
+        "displayName": "Urgent priority",
+        "tonalRamp": [
+          "oklch(15% 0.12 25)",
+          "oklch(26% 0.12 25)",
+          "oklch(38% 0.12 25)",
+          "oklch(49% 0.12 25)",
+          "oklch(61% 0.12 25)",
+          "oklch(72% 0.12 25)",
+          "oklch(84% 0.12 25)",
+          "oklch(95% 0.12 25)"
+        ]
+      },
+      "high": {
+        "role": "tertiary",
+        "displayName": "High priority",
+        "tonalRamp": [
+          "oklch(15% 0.10 50)",
+          "oklch(26% 0.10 50)",
+          "oklch(38% 0.10 50)",
+          "oklch(49% 0.10 50)",
+          "oklch(61% 0.10 50)",
+          "oklch(72% 0.10 50)",
+          "oklch(84% 0.10 50)",
+          "oklch(95% 0.10 50)"
+        ]
+      },
+      "medium": {
+        "role": "tertiary",
+        "displayName": "Medium priority",
+        "tonalRamp": [
+          "oklch(15% 0.09 90)",
+          "oklch(26% 0.09 90)",
+          "oklch(38% 0.09 90)",
+          "oklch(49% 0.09 90)",
+          "oklch(61% 0.09 90)",
+          "oklch(72% 0.09 90)",
+          "oklch(84% 0.09 90)",
+          "oklch(95% 0.09 90)"
+        ]
+      },
+      "low": {
+        "role": "tertiary",
+        "displayName": "Low priority",
+        "tonalRamp": [
+          "oklch(15% 0.05 215)",
+          "oklch(26% 0.05 215)",
+          "oklch(38% 0.05 215)",
+          "oklch(49% 0.05 215)",
+          "oklch(61% 0.05 215)",
+          "oklch(72% 0.05 215)",
+          "oklch(84% 0.05 215)",
+          "oklch(95% 0.05 215)"
+        ]
+      },
+      "on-accent": {
+        "role": "neutral",
+        "displayName": "Action label",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "native-sheet",
+        "value": "animationType=\"none\"",
+        "purpose": "No custom animation on NativeSheet; route editor modals use platform presentation."
+      }
+    ],
+    "breakpoints": [],
+    "nativeEvidence": {
+      "scope": "apps/mobile; source inspection only",
+      "units": "Native source uses logical layout units; pt in DESIGN.md and px in HTML previews are documentation translations.",
+      "appearance": "Light; no native dark palette",
+      "platform": "iOS phone release intent; Android release readiness unresolved",
+      "previewLimit": "HTML/CSS snippets are illustrative; browser focus outlines are preview affordances, not native implementation evidence. No custom hover treatment is specified by the native source.",
+      "rampLimit": "Synthesized illustrative OKLCH ramps are panel metadata only. Colored ramps approximate source hue and chroma; they are not application tokens or measured contrast evidence.",
+      "qa": "No build, test, lint, typecheck, detector, server, simulator, screenshot or device QA executed. No web detector applies to native components."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary action",
+      "kind": "button",
+      "refersTo": "action-primary",
+      "description": "Illustrative HTML translation of the native Action.",
+      "html": "<button class=\"ds-action\">Save changes</button>",
+      "css": ".ds-action{min-height:48px;padding:0 18px;border:0;border-radius:14px;background:#242424;color:#fff;font:700 15px system-ui}.ds-action:disabled{opacity:.5}.ds-action:focus-visible{outline:2px solid #646464;outline-offset:3px}"
+    },
+    {
+      "name": "Muted action",
+      "kind": "button",
+      "refersTo": "action-muted",
+      "description": "Secondary Action variant.",
+      "html": "<button class=\"ds-muted\">Reset filters</button>",
+      "css": ".ds-muted{min-height:48px;padding:0 18px;border:0;border-radius:14px;background:#F0F0F0;color:#242424;font:700 15px system-ui}.ds-muted:disabled{opacity:.5}.ds-muted:focus-visible{outline:2px solid #646464;outline-offset:3px}"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "Persistent label and native text input shape.",
+      "html": "<label class=\"ds-field\">Title<input aria-label=\"Title\" placeholder=\"Issue title\"></label>",
+      "css": ".ds-field{display:grid;gap:8px;color:#242424;font:700 13px system-ui}.ds-field input{padding:13px 14px;border:1px solid #E8E8E8;border-radius:14px;background:#FEFEFE;color:#242424;font:16px system-ui}.ds-field input::placeholder{color:#646464}.ds-field input:focus-visible{outline:2px solid #646464;outline-offset:3px}"
+    },
+    {
+      "name": "Choices",
+      "kind": "chip",
+      "refersTo": "choice",
+      "description": "Horizontally scrollable single-selection controls.",
+      "html": "<div class=\"ds-choices\"><button aria-pressed=\"true\">Any</button><button aria-pressed=\"false\">Urgent</button><button aria-pressed=\"false\">High</button></div>",
+      "css": ".ds-choices{display:flex;gap:8px;overflow:auto}.ds-choices button{min-height:48px;padding:12px 16px;border:0;border-radius:12px;background:#F0F0F0;color:#242424;font:15px system-ui;white-space:nowrap}.ds-choices button[aria-pressed=true]{background:#242424;color:#fff;font-weight:600}.ds-choices button:focus-visible{outline:2px solid #646464;outline-offset:3px}"
+    },
+    {
+      "name": "Issue row",
+      "kind": "custom",
+      "refersTo": "issue-row",
+      "description": "Native row hierarchy; pressed fill is represented with CSS active.",
+      "html": "<button class=\"ds-issue\"><span class=\"ds-meta\">PLAN-42 · In progress</span><span class=\"ds-title\">Review assigned work</span><span class=\"ds-meta\">Due today · Alex</span></button>",
+      "css": ".ds-issue{display:grid;gap:7px;text-align:left;width:100%;min-height:80px;padding:17px 22px;border:0;border-bottom:1px solid #E8E8E8;background:#F9F9F9;color:#242424;font-family:system-ui}.ds-title{font-size:17px;font-weight:500;line-height:25px}.ds-meta{font-size:13px;line-height:19px;color:#646464}.ds-issue:active{background:#F0F0F0}.ds-issue:focus-visible{outline:2px solid #646464;outline-offset:-3px}"
+    },
+    {
+      "name": "Tab navigation",
+      "kind": "nav",
+      "description": "Text-only schematic of Expo Router tabs; native icons and layout are platform-owned.",
+      "html": "<nav class=\"ds-nav\" aria-label=\"Workspace\"><span aria-current=\"page\">My work</span><span>Projects</span><span>Inbox</span><span>Search</span><span>You</span></nav>",
+      "css": ".ds-nav{display:flex;justify-content:space-around;gap:12px;padding:8px 0;background:#F9F9F9;border-top:1px solid #E8E8E8;color:#646464;font:600 11px system-ui;letter-spacing:.1px}.ds-nav [aria-current]{color:#242424}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Operate",
+    "overview": "The native client extends the incumbent neutral workspace identity. Type weight,\nspacing and small tonal differences establish hierarchy. Native navigation and\nfocused sheets keep work controls direct and readable.",
+    "keyCharacteristics": [
+      "Neutral surfaces and functional status color.",
+      "System text and platform navigation.",
+      "Readable issue lists and focused controls."
+    ],
+    "rules": [
+      {
+        "name": "The Functional Color Rule",
+        "body": "Pair priority and status colors with visible text;\ncolor alone must not carry their meaning.",
+        "section": "colors"
+      },
+      {
+        "name": "The Scalable Text Rule",
+        "body": "Keep text containers flexible as system text grows.\nIssue titles permit three lines; status and assignee labels retain local truncation.\nDevice validation of large text remains outstanding.",
+        "section": "typography"
+      },
+      {
+        "name": "The Reachable Controls Rule",
+        "body": "Shared actions, choices, search clear, sheet Done\nand row action controls use minimum 48-unit targets. Issue rows have minimum height\n80. These are source constraints, not a claim about every control in the app.",
+        "section": "layout"
+      }
+    ],
+    "dos": [
+      "Do extend shared native primitives and preserve neutral hierarchy.",
+      "Do retain visible metadata and accessible action names.",
+      "Do keep list headers scrollable and respect safe-area creation controls."
+    ],
+    "donts": [
+      "Don't communicate status or priority through color alone.",
+      "Don't add decorative cards, custom sheet motion or display fonts.",
+      "Don't claim dark appearance, Android readiness or device accessibility is verified."
+    ]
+  }
+}
