@@ -139,14 +139,16 @@ export function timelineRows(
       issue,
       span: timelineSpan(issue),
     }));
-    let span: TimelineSpan | null = null;
+    let start = Infinity;
+    let end = -Infinity;
     for (const entry of entries)
-      if (entry.span)
-        span = {
-          start: Math.min(span?.start ?? entry.span.start, entry.span.start),
-          end: Math.max(span?.end ?? entry.span.end, entry.span.end),
-          inferred: false,
-        };
+      if (entry.span) {
+        start = Math.min(start, entry.span.start);
+        end = Math.max(end, entry.span.end);
+      }
+    const span: TimelineSpan | null = Number.isFinite(start)
+      ? { start, end, inferred: false }
+      : null;
     const folded = grouping !== 'none' && collapsed.includes(group.key);
     if (grouping !== 'none')
       rows.push({

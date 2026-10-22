@@ -60,11 +60,15 @@ export function ProjectTimelineView({
   const styles = useThemedStyles(createStyles);
   const { fontScale } = useWindowDimensions();
   const [viewport, setViewport] = useState(360);
+  const [measured, setMeasured] = useState(false);
   const [offset, setOffset] = useState(scroll.current.timelineX ?? 0);
   const [jump, setJump] = useState(false);
   const [date, setDate] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const horizontal = useRef<ScrollView>(null);
+  const vertical = useRef<FlatList<TimelineRow>>(null);
+  const initialY = useRef(scroll.current.timelineY ?? 0);
+  const restoreY = useRef(true);
   const labelWidth = Math.min(
     viewport - 80,
     Math.max(140, Math.min(256, viewport * 0.42), fontScale >= 1.6 ? 220 : 0),
@@ -84,13 +88,23 @@ export function ProjectTimelineView({
   const groupHeight = Math.ceil(64 * textScale);
   const hasInferredStart = rows.some((row) => row.kind === 'issue' && row.span?.inferred);
   const headerHeight = Math.ceil(64 * textScale);
+  const rowLayouts = useMemo(() => {
+    let offset = headerHeight;
+    return rows.map((row, index) => {
+      const length = row.kind === 'group' ? groupHeight : rowHeight;
+      const layout = { index, length, offset };
+      offset += length;
+      return layout;
+    });
+  }, [rows, headerHeight, groupHeight, rowHeight]);
   useEffect(() => {
+    if (!measured) return;
     const x = Math.max(0, Math.min(offset, track.width - visibleWidth));
     if (x === offset) return;
     scroll.current.timelineX = x;
     setOffset(x);
     horizontal.current?.scrollTo({ x, animated: false });
-  }, [offset, track.width, visibleWidth, scroll]);
+  }, [offset, track.width, visibleWidth, scroll, measured]);
   const go = (day: number) => {
     setNotice(
       day < track.start || day > track.end
@@ -264,7 +278,10 @@ export function ProjectTimelineView({
   return (
     <View
       style={styles.fill}
-      onLayout={(event) => setViewport(Math.max(240, event.nativeEvent.layout.width))}
+      onLayout={(event) => {
+        setViewport(Math.max(240, event.nativeEvent.layout.width));
+        setMeasured(true);
+      }}
     >
       <View style={styles.controls}>
         <ScrollView
@@ -314,115 +331,128 @@ export function ProjectTimelineView({
           <Text style={styles.hint}>Dashed intervals start from the task’s creation date.</Text>
         ) : null}
       </View>
-      <ScrollView
-        ref={horizontal}
-        horizontal
-        nestedScrollEnabled
-        directionalLockEnabled
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
-        style={styles.fill}
-        contentContainerStyle={{ minWidth: '100%' }}
-        contentOffset={{ x: scroll.current.timelineX ?? 0, y: 0 }}
-        onScroll={(event) => {
-          const x = event.nativeEvent.contentOffset.x;
-          scroll.current.timelineX = x;
-          setOffset(x);
-        }}
-        scrollEventThrottle={32}
-      >
-        <FlatList<TimelineRow>
+      {measured ? (
+        <ScrollView
+          ref={horizontal}
+          horizontal
           nestedScrollEnabled
+          directionalLockEnabled
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
-          style={{ width: labelWidth + track.width }}
-          data={rows}
-          keyExtractor={(item) => item.key}
-          extraData={{ offset, selectedId, scale, collapsed }}
-          stickyHeaderIndices={[0]}
-          initialNumToRender={12}
-          windowSize={5}
-          contentContainerStyle={{ paddingBottom: 110 }}
-          contentOffset={{ x: 0, y: scroll.current.timelineY ?? 0 }}
+          style={styles.fill}
+          contentContainerStyle={{ minWidth: '100%' }}
+          contentOffset={{ x: scroll.current.timelineX ?? 0, y: 0 }}
           onScroll={(event) => {
-            scroll.current.timelineY = event.nativeEvent.contentOffset.y;
+            const x = event.nativeEvent.contentOffset.x;
+            scroll.current.timelineX = x;
+            setOffset(x);
           }}
-          scrollEventThrottle={100}
-          ListHeaderComponent={
-            <View style={[styles.axis, { height: headerHeight }]}>
-              <View
-                style={{
-                  position: 'absolute',
-                  left: labelWidth,
-                  width: track.width,
-                  height: headerHeight,
-                }}
-              >
-                {grid()}
-                {axis.months.map((month) => (
-                  <Text
-                    key={month.label}
-                    numberOfLines={1}
-                    style={[
-                      styles.month,
-                      { left: month.left, top: 7 * textScale, width: month.width },
-                    ]}
-                  >
-                    {month.label}
-                  </Text>
-                ))}
-                {axis.days
-                  .filter((day) => day.number)
-                  .map((day) => (
+          scrollEventThrottle={32}
+        >
+          <FlatList<TimelineRow>
+            ref={vertical}
+            getItemLayout={(_, index) => rowLayouts[index]}
+            onContentSizeChange={() => {
+              if (!restoreY.current) return;
+              restoreY.current = false;
+              vertical.current?.scrollToOffset({ offset: initialY.current, animated: false });
+            }}
+            nestedScrollEnabled
+            keyboardDismissMode="on-drag"
+            keyboardShouldPersistTaps="handled"
+            style={{ width: labelWidth + track.width }}
+            data={rows}
+            keyExtractor={(item) => item.key}
+            extraData={{ offset, selectedId, scale, collapsed }}
+            stickyHeaderIndices={[0]}
+            initialNumToRender={12}
+            windowSize={5}
+            contentContainerStyle={{ paddingBottom: 110 }}
+            contentOffset={{ x: 0, y: initialY.current }}
+            onScroll={(event) => {
+              if (!restoreY.current) scroll.current.timelineY = event.nativeEvent.contentOffset.y;
+            }}
+            scrollEventThrottle={100}
+            ListHeaderComponent={
+              <View style={[styles.axis, { height: headerHeight }]}>
+                <View
+                  style={{
+                    position: 'absolute',
+                    left: labelWidth,
+                    width: track.width,
+                    height: headerHeight,
+                  }}
+                >
+                  {grid()}
+                  {axis.months.map((month) => (
                     <Text
-                      key={day.index}
+                      key={month.label}
+                      numberOfLines={1}
                       style={[
-                        styles.day,
-                        {
-                          left: day.index * track.dayWidth,
-                          top: 34 * textScale,
-                          width: Math.max(28, track.dayWidth),
-                        },
+                        styles.month,
+                        { left: month.left, top: 7 * textScale, width: month.width },
                       ]}
                     >
-                      {day.number}
+                      {month.label}
                     </Text>
                   ))}
+                  {axis.days
+                    .filter((day) => day.number)
+                    .map((day) => (
+                      <Text
+                        key={day.index}
+                        style={[
+                          styles.day,
+                          {
+                            left: day.index * track.dayWidth,
+                            top: 34 * textScale,
+                            width: Math.max(28, track.dayWidth),
+                          },
+                        ]}
+                      >
+                        {day.number}
+                      </Text>
+                    ))}
+                </View>
+                <View
+                  style={[
+                    styles.label,
+                    {
+                      width: labelWidth,
+                      height: headerHeight,
+                      transform: [{ translateX: offset }],
+                    },
+                  ]}
+                >
+                  <Text accessibilityRole="header" style={styles.group}>
+                    Issue
+                  </Text>
+                  <Text style={styles.meta}>Interval</Text>
+                </View>
               </View>
-              <View
-                style={[
-                  styles.label,
-                  { width: labelWidth, height: headerHeight, transform: [{ translateX: offset }] },
-                ]}
-              >
-                <Text accessibilityRole="header" style={styles.group}>
-                  Issue
-                </Text>
-                <Text style={styles.meta}>Interval</Text>
-              </View>
-            </View>
-          }
-          ListEmptyComponent={
-            <View style={{ width: viewport }}>
-              <EmptyState
-                title="No matching issues"
-                detail="Clear a filter or choose another status."
-              />
-            </View>
-          }
-          ListFooterComponent={
-            !issues.length && rows.length ? (
+            }
+            ListEmptyComponent={
               <View style={{ width: viewport }}>
                 <EmptyState
                   title="No matching issues"
                   detail="Clear a filter or choose another status."
                 />
               </View>
-            ) : null
-          }
-          renderItem={renderRow}
-        />
-      </ScrollView>
+            }
+            ListFooterComponent={
+              !issues.length && rows.length ? (
+                <View style={{ width: viewport }}>
+                  <EmptyState
+                    title="No matching issues"
+                    detail="Clear a filter or choose another status."
+                  />
+                </View>
+              ) : null
+            }
+            renderItem={renderRow}
+          />
+        </ScrollView>
+      ) : null}
       {jump ? (
         <NativeSheet title="Go to date" visible onClose={() => setJump(false)}>
           <DateField label="Timeline date" value={date} onChange={setDate} />
