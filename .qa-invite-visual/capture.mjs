@@ -18,8 +18,9 @@ for(const spec of [
  const page=await browser.newPage({viewport:{width:spec.width,height:spec.height}});
  const errors=[];const posts=[];let inviteReads=0;let fail=spec.scenario==='error';
  page.on('pageerror',e=>errors.push(e.message));
- await page.route('**/api/**',async route=>{
+ await page.route('**/*',async route=>{
   const request=route.request();const path=new URL(request.url()).pathname;
+  if(path==='/'||path==='/app.js'||path==='/app.css'){await route.continue();return;}
   if(request.method()==='POST')posts.push(path);
   let data={};let status=200;
   if(path.endsWith('/auth/get-session'))data={session:{id:'fixture-session',userId:'fixture-user',token:'synthetic',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+86400000).toISOString()},user:{id:'fixture-user',name:'Ada Example',email:'ada@example.test',emailVerified:spec.scenario!=='unverified',role:'user',image:null,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}};

@@ -128,10 +128,11 @@ export const inviteRoutes = new Elysia({ name: 'invites', detail: { tags: ['Invi
 
   .get('/me/invites', async ({ user, query, set }) => {
     set.headers['cache-control'] = 'private, no-store';
-    return paginate(query, (window) => listReceivedInvites(requireUser(user).email, window));
+    return paginate(query, (window) => listReceivedInvites(requireUser(user).email ?? '', window));
   }, {
     beforeHandle: ({ user }) => {
-      if (!requireUser(user).emailVerified) {
+      requireUser(user);
+      if (!user?.emailVerified || !user.email) {
         throw new HttpError(403, 'Confirm your email before viewing invitations');
       }
     },

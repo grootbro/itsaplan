@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { auth, setAuthSettings } from '@repo/auth';
-import { createEmailVerificationToken } from 'better-auth/api';
+import { createHmac } from 'node:crypto';
 import { db, teamInvite } from '@repo/db';
 import { eq } from 'drizzle-orm';
 import { api, authedApi, createProject } from '#tests/helpers/app';
@@ -13,7 +13,13 @@ async function setup(verified = true) {
   const project = (await createProject(asOwner, { key: 'MKT', name: 'Marketing' })).data!;
   const invitee = await signUpTestUser({ team: false });
   if (verified) {
-    const token = await createEmailVerificationToken((await auth.$context).secret, invitee.email);
+    const now = Math.floor(Date.now() / 1000);
+    const input = [
+      { alg: 'HS256' },
+      { email: invitee.email, iat: now, exp: now + 60 },
+    ].map((value) => Buffer.from(JSON.stringify(value)).toString('base64url')).join('.');
+    const signature = createHmac('sha256', (await auth.$context).secret).update(input).digest('base64url');
+    const token = `${input}.${signature}`;
     await auth.api.verifyEmail({ query: { token } });
   }
   const client = authedApi(invitee.cookie);
@@ -39,7 +45,7 @@ describe('received invitations', () => {
     expect(result.status).toBe(200);
     expect(result.data?.items).toEqual([{ token: invite.token, teamName: expect.any(String), projectName: 'Marketing' }]);
     expect(result.data?.total).toBe(1);
-    expect(result.headers.get('cache-control')).toBe('private, no-store');
+    expect(new Headers(result.headers).get('cache-control')).toBe('private, no-store');
     expect((await client.teams.get()).data?.some((team) => team.id === project.teamId)).toBe(false);
     expect((await client.invites({ token: invite.token }).accept.post()).status).toBe(200);
     expect((await client.me.invites.get()).data?.total).toBe(0);
