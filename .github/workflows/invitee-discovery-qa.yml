@@ -1,0 +1,80 @@
+name: Invitee discovery QA
+on:
+  push:
+    branches: [qa/invitee-discovery-oct22]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      API_URL: https://example.test
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+      - run: bun install --frozen-lockfile
+      - name: Format changed source
+        run: |
+          mkdir -p /tmp/invite-evidence
+          bunx prettier --write apps/api/src/modules/invites/__tests__/integration/received-invites.test.ts apps/api/src/modules/invites/index.ts apps/api/src/modules/invites/model.ts apps/api/src/modules/invites/service.ts apps/web/messages/ar/invite.json apps/web/messages/en/invite.json apps/web/messages/es-ES/invite.json apps/web/messages/fa/invite.json apps/web/messages/fr/invite.json apps/web/messages/id/invite.json apps/web/messages/ko/invite.json apps/web/messages/pt-BR/invite.json apps/web/messages/ru/invite.json apps/web/messages/tr/invite.json apps/web/messages/uk/invite.json apps/web/messages/zh-CN/invite.json apps/web/messages/zh-TW/invite.json apps/web/src/app/page.tsx apps/web/src/features/invite/components/InviteActions.tsx apps/web/src/features/invite/components/InviteStart.tsx apps/web/src/features/invite/components/InviteStartList.tsx apps/web/src/features/invite/services/invite.service.ts apps/web/src/lib/api/endpoints/invites.ts apps/web/src/services/queryKeys.ts
+      - name: Lint and types
+        run: |
+          set -o pipefail
+          bun run lint 2>&1 | tee /tmp/invite-evidence/lint.log
+          bun run typecheck 2>&1 | tee /tmp/invite-evidence/types.log
+      - name: Full web suite
+        run: |
+          set -o pipefail
+          bunx turbo run test --filter=web --concurrency=1 2>&1 | tee /tmp/invite-evidence/web.log
+      - name: Build test image
+        run: |
+          git show 42fd2f4081b6e6eaa9262361070f5edb675f4f5e:apps/api/src/modules/invites/index.ts > apps/api/src/modules/invites/received-invites.baseline.txt
+          docker compose -f docker-compose.test.yml build api-test
+      - name: API regression baseline and fixed invite suite
+        run: |
+          set -o pipefail
+          docker compose -f docker-compose.test.yml run --rm -e NO_COLOR=1 api-test sh -c '
+            bun run packages/db/src/migrate.ts &&
+            cp apps/api/src/modules/invites/index.ts /tmp/fixed-invite-index.ts &&
+            cp apps/api/src/modules/invites/received-invites.baseline.txt apps/api/src/modules/invites/index.ts &&
+            cd apps/api &&
+            bun test src/modules/invites/__tests__/integration/received-invites.test.ts --test-name-pattern "discovers only" > /tmp/invite-baseline.log 2>&1
+            baseline_result=$?
+            cp /tmp/fixed-invite-index.ts src/modules/invites/index.ts
+            cat /tmp/invite-baseline.log
+            test "$baseline_result" -ne 0 && grep -q "404" /tmp/invite-baseline.log &&
+            bun test src/modules/invites/__tests__/integration/
+          ' 2>&1 | tee /tmp/invite-evidence/api.log
+      - name: Browser fixture and captures
+        run: |
+          bun .qa-invite-visual/build.mjs
+          mkdir -p /tmp/invite-browser
+          cd /tmp/invite-browser
+          bun add --exact playwright@1.62.1
+          bunx playwright install --with-deps chromium
+          cd "$GITHUB_WORKSPACE"
+          bun .qa-invite-visual/serve.mjs > /tmp/invite-evidence/server.log 2>&1 &
+          invite_server_pid=$!
+          trap 'kill "$invite_server_pid" 2>/dev/null || true' EXIT
+          bun .qa-invite-visual/capture.mjs
+      - name: Capture tested source
+        run: |
+          bunx prettier --check apps/api/src/modules/invites/__tests__/integration/received-invites.test.ts apps/api/src/modules/invites/index.ts apps/api/src/modules/invites/model.ts apps/api/src/modules/invites/service.ts apps/web/messages/ar/invite.json apps/web/messages/en/invite.json apps/web/messages/es-ES/invite.json apps/web/messages/fa/invite.json apps/web/messages/fr/invite.json apps/web/messages/id/invite.json apps/web/messages/ko/invite.json apps/web/messages/pt-BR/invite.json apps/web/messages/ru/invite.json apps/web/messages/tr/invite.json apps/web/messages/uk/invite.json apps/web/messages/zh-CN/invite.json apps/web/messages/zh-TW/invite.json apps/web/src/app/page.tsx apps/web/src/features/invite/components/InviteActions.tsx apps/web/src/features/invite/components/InviteStart.tsx apps/web/src/features/invite/components/InviteStartList.tsx apps/web/src/features/invite/services/invite.service.ts apps/web/src/lib/api/endpoints/invites.ts apps/web/src/services/queryKeys.ts
+          git add apps/api/src/modules/invites/__tests__/integration/received-invites.test.ts apps/api/src/modules/invites/index.ts apps/api/src/modules/invites/model.ts apps/api/src/modules/invites/service.ts apps/web/messages/ar/invite.json apps/web/messages/en/invite.json apps/web/messages/es-ES/invite.json apps/web/messages/fa/invite.json apps/web/messages/fr/invite.json apps/web/messages/id/invite.json apps/web/messages/ko/invite.json apps/web/messages/pt-BR/invite.json apps/web/messages/ru/invite.json apps/web/messages/tr/invite.json apps/web/messages/uk/invite.json apps/web/messages/zh-CN/invite.json apps/web/messages/zh-TW/invite.json apps/web/src/app/page.tsx apps/web/src/features/invite/components/InviteActions.tsx apps/web/src/features/invite/components/InviteStart.tsx apps/web/src/features/invite/components/InviteStartList.tsx apps/web/src/features/invite/services/invite.service.ts apps/web/src/lib/api/endpoints/invites.ts apps/web/src/services/queryKeys.ts
+          git update-index --force-remove .github/workflows/invitee-discovery-qa.yml .qa-invite-visual/build.mjs .qa-invite-visual/entry.tsx .qa-invite-visual/serve.mjs .qa-invite-visual/capture.mjs
+          git write-tree > /tmp/invite-evidence/source-tree.txt
+          tar czf /tmp/invite-evidence/formatted-source.tgz apps/api/src/modules/invites/__tests__/integration/received-invites.test.ts apps/api/src/modules/invites/index.ts apps/api/src/modules/invites/model.ts apps/api/src/modules/invites/service.ts apps/web/messages/ar/invite.json apps/web/messages/en/invite.json apps/web/messages/es-ES/invite.json apps/web/messages/fa/invite.json apps/web/messages/fr/invite.json apps/web/messages/id/invite.json apps/web/messages/ko/invite.json apps/web/messages/pt-BR/invite.json apps/web/messages/ru/invite.json apps/web/messages/tr/invite.json apps/web/messages/uk/invite.json apps/web/messages/zh-CN/invite.json apps/web/messages/zh-TW/invite.json apps/web/src/app/page.tsx apps/web/src/features/invite/components/InviteActions.tsx apps/web/src/features/invite/components/InviteStart.tsx apps/web/src/features/invite/components/InviteStartList.tsx apps/web/src/features/invite/services/invite.service.ts apps/web/src/lib/api/endpoints/invites.ts apps/web/src/services/queryKeys.ts
+      - name: Tear down test services
+        if: always()
+        run: docker compose -f docker-compose.test.yml down -v
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: invitee-discovery-evidence
+          path: /tmp/invite-evidence
+          retention-days: 14
