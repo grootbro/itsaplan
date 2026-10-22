@@ -355,7 +355,8 @@ export function ProjectTimelineView({
             onContentSizeChange={() => {
               if (!restoreY.current) return;
               restoreY.current = false;
-              vertical.current?.scrollToOffset({ offset: initialY.current, animated: false });
+              if (initialY.current > 0)
+                vertical.current?.scrollToOffset({ offset: initialY.current, animated: false });
             }}
             nestedScrollEnabled
             keyboardDismissMode="on-drag"
@@ -372,7 +373,7 @@ export function ProjectTimelineView({
             onScroll={(event) => {
               if (!restoreY.current) scroll.current.timelineY = event.nativeEvent.contentOffset.y;
             }}
-            scrollEventThrottle={100}
+            scrollEventThrottle={16}
             ListHeaderComponent={
               <View style={[styles.axis, { height: headerHeight }]}>
                 <View

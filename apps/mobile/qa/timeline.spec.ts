@@ -163,11 +163,12 @@ test('reaches older tasks by vertical scrolling and restores that position', asy
     return node.scrollTop;
   });
   const older = page.getByRole('button', { name: /^Open PLAN-1, Plan the mobile release,/ });
-  await expect(older).toBeVisible();
+  await expect(older).toBeInViewport();
+  await page.waitForTimeout(150);
   await older.click();
   await expect(page.getByText('formatted text', { exact: true })).toBeVisible();
   await page.goBack();
-  await expect(older).toBeVisible();
+  await expect(older).toBeInViewport();
   await expect
     .poll(() =>
       older.evaluate((element) => {
