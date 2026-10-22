@@ -16,6 +16,7 @@ export interface Project {
   timeEstimateEnabled?: boolean;
   initiativesEnabled?: boolean;
   cyclesEnabled?: boolean;
+  subtasksEnabled?: boolean;
   isFavorite: boolean;
   isHidden: boolean;
   permissions?: {
@@ -62,6 +63,7 @@ export interface ProjectBoard {
     | 'timeEstimateEnabled'
     | 'initiativesEnabled'
     | 'cyclesEnabled'
+    | 'subtasksEnabled'
   >;
   columns: Column[];
   issueTypes: { id: number; name: string; isDefault: boolean }[];
@@ -75,6 +77,7 @@ export interface ProjectBoard {
   }[];
   assignees: Assignee[];
   permissions: {
+    views?: { read?: boolean; create?: boolean; edit?: boolean; delete?: boolean };
     cycles?: { read?: boolean; create?: boolean; edit?: boolean; delete?: boolean };
     initiatives?: { read?: boolean; create?: boolean; edit?: boolean; delete?: boolean };
     work_items?: {
@@ -101,6 +104,14 @@ export interface Issue {
   labelIds: number[];
   assigneeUserId: string | null;
   delegateUserId?: string | null;
+  parentId?: number | null;
+  position?: number;
+  fieldValues?: {
+    fieldId: number;
+    value: string | number | boolean | null;
+    valueEnd: string | null;
+    optionIds: number[];
+  }[];
   priority: Priority;
   startDate: string | null;
   dueDate: string | null;

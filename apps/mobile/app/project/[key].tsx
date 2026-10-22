@@ -1,3 +1,6 @@
+import { SavedViewsSheet } from '@/ui/SavedViewsSheet';
+import { filterSavedView, savedViewDisplay, savedViewRows, sortSavedView } from '@/lib/saved-views';
+import type { ProjectDisplay } from '@/lib/project-display';
 import { ProjectMenu } from '@/ui/ProjectMenu';
 import { IssueWorkspace, useIssueWorkspace } from '@/ui/IssueWorkspace';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,11 +49,30 @@ import {
 import { ProjectDisplaySheet, ProjectLayoutPicker } from '@/ui/ProjectDisplaySheet';
 
 export default function ProjectRoute() {
-  const { key, layout } = useLocalSearchParams<{ key: string; layout?: string }>();
-  return <Project key={key} projectKey={key} layoutParam={layout} />;
+  const { key, layout, savedView } = useLocalSearchParams<{
+    key: string;
+    layout?: string;
+    savedView?: string;
+  }>();
+  return (
+    <Project
+      key={key + ':' + (savedView ?? '')}
+      projectKey={key}
+      layoutParam={layout}
+      savedViewParam={savedView}
+    />
+  );
 }
 
-function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutParam?: string }) {
+function Project({
+  projectKey: key,
+  layoutParam,
+  savedViewParam,
+}: {
+  projectKey: string;
+  layoutParam?: string;
+  savedViewParam?: string;
+}) {
   const workspace = useIssueWorkspace();
   const colors = useColors();
   const styles = useThemedStyles(createStyles);
@@ -62,13 +84,53 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
   const client = useQueryClient();
   const { height, fontScale } = useWindowDimensions();
   const userId = session.data?.user.id ?? '';
-  const display = useProjectDisplay(userId, key);
+  const storedDisplay = useProjectDisplay(userId, key);
+  const board = useQuery({
+    queryKey: ['board', key],
+    queryFn: () => api.board(key),
+    enabled: !!key,
+  });
+  const [showSavedViews, setShowSavedViews] = useState(false);
+  const savedId = savedViewParam && /^\d+$/.test(savedViewParam) ? Number(savedViewParam) : null;
+  const hasSavedView = savedViewParam !== undefined && savedViewParam !== '';
+  const views = useQuery({
+    queryKey: ['saved-views', userId, key],
+    queryFn: () => api.views(key),
+    enabled: board.data?.permissions.views?.read === true && (hasSavedView || showSavedViews),
+  });
+  const selectedView = views.data?.find(
+    (view) => view.id === savedId && view.projectId === board.data?.project.id,
+  );
+  const adaptedView = useMemo(
+    () => savedViewDisplay(selectedView?.display),
+    [selectedView?.display],
+  );
+  const overrideKey = ['saved-view-display', userId, key, savedViewParam ?? ''];
+  const [overrides, setOverrides] = useState<Partial<ProjectDisplay>>(
+    client.getQueryData(overrideKey) ?? {},
+  );
+  const overrideRef = useRef(overrides);
+  overrideRef.current = overrides;
+  useEffect(
+    () => () => {
+      if (hasSavedView) client.setQueryData(overrideKey, overrideRef.current);
+    },
+    [client, userId, key, savedViewParam],
+  );
+  const display = {
+    ...storedDisplay,
+    state: hasSavedView ? { ...adaptedView.state, ...overrides } : storedDisplay.state,
+    change: (patch: Partial<ProjectDisplay>) => {
+      if (hasSavedView) setOverrides((value) => ({ ...value, ...patch }));
+      else storedDisplay.change(patch);
+    },
+  };
   const { scope: view, filters, sort, grouping, layout } = display.state;
   const setView = (scope: ProjectScope) => display.change({ scope });
   const setFilters = (filters: Filters) => display.change({ filters });
   const setSort = (sort: IssueSort) => display.change({ sort });
   const setGrouping = (grouping: IssueGrouping) => display.change({ grouping });
-  const runtimeKey = ['project-runtime', userId, key];
+  const runtimeKey = ['project-runtime', userId, key, savedViewParam ?? ''];
   const saved = client.getQueryData<{
     scroll: CollectionScroll;
     month: string;
@@ -88,11 +150,13 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
   const runtime = useRef({ scroll: scroll.current, month, day, unscheduled, timelineCollapsed });
   runtime.current = { scroll: scroll.current, month, day, unscheduled, timelineCollapsed };
   useEffect(() => {
-    client.setQueryDefaults(['project-runtime', userId, key], { gcTime: Infinity });
+    client.setQueryDefaults(['project-runtime', userId, key, savedViewParam ?? ''], {
+      gcTime: Infinity,
+    });
     return () => {
-      client.setQueryData(['project-runtime', userId, key], runtime.current);
+      client.setQueryData(['project-runtime', userId, key, savedViewParam ?? ''], runtime.current);
     };
-  }, [client, userId, key]);
+  }, [client, userId, key, savedViewParam]);
   useEffect(() => {
     if (
       !display.isPending &&
@@ -105,11 +169,6 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
   const [showDisplay, setShowDisplay] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [actionId, setActionId] = useState<number | null>(null);
-  const board = useQuery({
-    queryKey: ['board', key],
-    queryFn: () => api.board(key),
-    enabled: !!key,
-  });
   const issues = useQuery({
     queryKey: ['issues', key],
     queryFn: () => api.issues(key),
@@ -142,7 +201,24 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
   const source = view === 'archive' ? (archived.data ?? []) : active;
   const inView =
     typeof view === 'number' ? source.filter((issue) => issue.columnId === view) : source;
-  const visible = visibleIssues(inView, filters, sort, session.data?.user.id);
+  let visible = visibleIssues(inView, filters, sort, session.data?.user.id);
+  let savedError: string | null = null;
+  if (selectedView && board.data) {
+    try {
+      const base = filterSavedView(inView, selectedView, board.data);
+      const matchingIds = new Set(
+        visibleIssues(base, filters, sort, userId).map((issue) => issue.id),
+      );
+      const matching = base.filter((issue) => matchingIds.has(issue.id));
+      visible = overrides.sort
+        ? visibleIssues(matching, filters, sort, userId)
+        : sortSavedView(matching, selectedView.display, board.data);
+      visible = savedViewRows(visible, selectedView.display, board.data);
+    } catch (error) {
+      visible = [];
+      savedError = error instanceof Error ? error.message : 'This saved view is unavailable.';
+    }
+  }
   const selectedIssue = source.find((issue) => issue.id === actionId);
   const cycleChoices = [
     ...new Map([
@@ -184,7 +260,8 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
   useEffect(() => {
     navigation.setOptions({ title: board.data?.project.name ?? key });
   }, [board.data?.project.name, key, navigation]);
-  const refresh = () => Promise.all([board.refetch(), listQuery.refetch()]);
+  const refresh = () =>
+    Promise.all([board.refetch(), listQuery.refetch(), ...(hasSavedView ? [views.refetch()] : [])]);
   if (display.isPending || board.isPending) return <Loading />;
   if (!board.data && board.isError)
     return (
@@ -194,6 +271,42 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
       </View>
     );
   if (!board.data) return <Loading />;
+
+  const selectSavedView = (id: number | null) => {
+    setShowSavedViews(false);
+    router.replace({
+      pathname: '/project/[key]',
+      params: { key, ...(id === null ? {} : { savedView: String(id) }) },
+    });
+  };
+  if (hasSavedView && board.data.permissions.views?.read === true && views.isPending)
+    return <Loading />;
+  if (
+    hasSavedView &&
+    (!Number.isSafeInteger(savedId) ||
+      (savedId ?? 0) <= 0 ||
+      board.data.permissions.views?.read !== true ||
+      views.isError ||
+      !selectedView ||
+      savedError)
+  )
+    return (
+      <View style={styles.screen}>
+        <EmptyState
+          title="Saved view unavailable"
+          detail={
+            savedError ??
+            (views.isError
+              ? 'Could not load this view. Retry or open all project issues.'
+              : 'The view was removed, belongs to another project, or your role cannot read it.')
+          }
+        />
+        {board.data.permissions.views?.read ? (
+          <Action label="Retry saved view" onPress={() => void views.refetch()} />
+        ) : null}
+        <Action label="All project issues" muted onPress={() => selectSavedView(null)} />
+      </View>
+    );
 
   const reset = () => display.change({ scope: 'all', filters: { ...defaultFilters } });
   const createIssue = (columnId?: number) =>
@@ -229,6 +342,20 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
         </Text>
         <Ionicons name="chevron-down" size={18} color={colors.muted} />
       </Pressable>
+      {board.data.permissions.views?.read ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Saved views"
+          onPress={() => setShowSavedViews(true)}
+          style={{ flexDirection: 'row', alignItems: 'center', minHeight: 48, gap: 8 }}
+        >
+          <Ionicons name="albums-outline" size={18} color={colors.muted} />
+          <Text style={[workStyles.buttonText, { flex: 1 }]} numberOfLines={1}>
+            {selectedView?.name ?? 'Saved views'}
+          </Text>
+          <Ionicons name="chevron-down" size={16} color={colors.muted} />
+        </Pressable>
+      ) : null}
       {height >= 600 ? (
         <View style={styles.summary}>
           <Text style={styles.subtitle}>
@@ -335,6 +462,20 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
           header
         )}
         {display.error ? <Notice message={display.error} /> : null}
+        {selectedView ? (
+          <Notice
+            message="Saved view filters are active. Filters and Display change your local preview."
+            action="Manage"
+            onPress={() => setShowSavedViews(true)}
+          />
+        ) : null}
+        {selectedView && adaptedView.warnings.length ? (
+          <Notice
+            message="Some web display options are unavailable on mobile. Saved filters remain active."
+            action="Details"
+            onPress={() => setShowSavedViews(true)}
+          />
+        ) : null}
         {board.isError || listQuery.isError ? (
           <Notice
             message="Could not refresh. Loaded issues remain available."
@@ -472,6 +613,18 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
             <Text style={styles.fabLabel}>New issue</Text>
           </Pressable>
         ) : null}
+        {showSavedViews ? (
+          <SavedViewsSheet
+            projectKey={key}
+            userId={userId}
+            board={board.data}
+            state={display.state}
+            active={selectedView}
+            savedOrder={!overrides.sort}
+            onSelect={selectSavedView}
+            onClose={() => setShowSavedViews(false)}
+          />
+        ) : null}
         {showProjectMenu ? (
           <ProjectMenu board={board.data} onClose={() => setShowProjectMenu(false)} />
         ) : null}
@@ -494,6 +647,17 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
         ) : null}
         {showDisplay ? (
           <ProjectDisplaySheet
+            savedOrder={!!selectedView && !overrides.sort}
+            onSavedOrder={
+              selectedView
+                ? () =>
+                    setOverrides((value) => {
+                      const next = { ...value };
+                      delete next.sort;
+                      return next;
+                    })
+                : undefined
+            }
             state={display.state}
             onChange={display.change}
             onClose={() => setShowDisplay(false)}

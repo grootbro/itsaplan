@@ -10,6 +10,8 @@ export async function installFixture(
     delay?: number;
     planning?: boolean;
     timeline?: boolean;
+    views?: boolean;
+    viewsFailure?: boolean;
     saveFailure?: boolean;
     uploadFailure?: boolean;
   } = {},
@@ -37,6 +39,12 @@ export async function installFixture(
         create: !options.readonly,
         edit: !options.readonly,
         delete: !options.readonly,
+      },
+      views: {
+        read: !!options.views,
+        create: !!options.views && !options.readonly,
+        edit: !!options.views && !options.readonly,
+        delete: !!options.views && !options.readonly,
       },
       cycles: { read: true, create: !options.readonly, edit: !options.readonly },
       initiatives: { read: true, create: !options.readonly, edit: !options.readonly },
@@ -133,6 +141,37 @@ export async function installFixture(
   let uploadAttempts = 0;
   let writes = 0;
   const failures: string[] = [];
+  const savedViews = [
+    {
+      id: 1,
+      projectId: 1,
+      name: 'High priority',
+      favorite: false,
+      position: 1,
+      icon: null,
+      filters: { conditions: [{ id: 'a', field: 'priority', op: 'is', values: ['high'] }] },
+      display: {
+        layout: 'table',
+        group: 'none',
+        sort: { field: 'identifier', dir: 'asc' },
+        properties: ['priority', 'dueDate'],
+        showSubtasks: false,
+        separateSubtasks: true,
+        future: { keep: 'metadata' },
+      },
+    },
+    {
+      id: 2,
+      projectId: 1,
+      name: 'Unsupported filter',
+      favorite: false,
+      position: 2,
+      icon: null,
+      filters: { conditions: [{ id: 'b', field: 'future:field', op: 'is', values: ['x'] }] },
+      display: { layout: 'kanban' },
+    },
+  ];
+  const viewWrites: { method: string; path: string; body: unknown }[] = [];
   await page.route('**/*', async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -147,6 +186,28 @@ export async function installFixture(
     let payload: unknown;
     if (options.fail && path.includes('/projects/'))
       return route.fulfill({ status: 503, json: { error: 'Synthetic outage' } });
+    if (/^\/projects\/[^/]+\/views$/.test(path)) {
+      if (options.viewsFailure)
+        return route.fulfill({ status: 503, json: { error: 'Synthetic view outage' } });
+      if (request.method() === 'POST') {
+        viewWrites.push({ method: 'POST', path, body: request.postDataJSON() });
+        const created = { ...savedViews[0], ...request.postDataJSON(), id: 3 };
+        savedViews.push(created);
+        return route.fulfill({ status: 201, json: created });
+      }
+      return route.fulfill({ json: savedViews });
+    }
+    if (/^\/views\/\d+(\/favorite)?$/.test(path)) {
+      const id = Number(path.split('/')[2]);
+      const view = savedViews.find((view) => view.id === id);
+      if (!view) return route.fulfill({ status: 404, json: { error: 'View removed' } });
+      const body = request.method() === 'PATCH' ? request.postDataJSON() : null;
+      viewWrites.push({ method: request.method(), path, body });
+      if (path.endsWith('/favorite')) view.favorite = request.method() === 'PUT';
+      else if (request.method() === 'PATCH') Object.assign(view, body);
+      else if (request.method() === 'DELETE') savedViews.splice(savedViews.indexOf(view), 1);
+      return route.fulfill(request.method() === 'PATCH' ? { json: view } : { status: 204 });
+    }
     if (path === '/settings/storage')
       payload = { maxAttachmentMb: 20, attachmentMimeTypes: ['application/pdf', 'image/png'] };
     else if (path === '/projects') payload = projects;
@@ -293,5 +354,5 @@ export async function installFixture(
     }
     return route.fulfill({ json: payload });
   });
-  return { options, writes: () => writes, failures, patches, uploads };
+  return { options, writes: () => writes, failures, patches, uploads, viewWrites, savedViews };
 }

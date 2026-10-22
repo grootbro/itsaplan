@@ -1,3 +1,4 @@
+import type { SavedView } from './saved-views';
 import { API_URL, authClient } from './auth';
 import { inboxProjectId, type InboxScope } from './inbox-scope';
 import { nativeUploadPart, type PickedAttachment } from './attachments';
@@ -48,6 +49,22 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
 const json = (value: unknown) => JSON.stringify(value);
 
 export const api = {
+  views: (key: string) => request<SavedView[]>('/projects/' + encodeURIComponent(key) + '/views'),
+  createView: (key: string, body: { name: string; filters: unknown; display: unknown }) =>
+    request<SavedView>('/projects/' + encodeURIComponent(key) + '/views', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  renameView: (id: number, name: string) =>
+    request<SavedView>('/views/' + id, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    }),
+  deleteView: (id: number) => request<void>('/views/' + id, { method: 'DELETE' }),
+  favoriteView: (id: number, favorite: boolean) =>
+    request<void>('/views/' + id + '/favorite', {
+      method: favorite ? 'PUT' : 'DELETE',
+    }),
   projects: () => request<Project[]>('/projects?permissions=true'),
   projectPreferences: (key: string, body: { isFavorite?: boolean; isHidden?: boolean }) =>
     request<{ isFavorite: boolean; isHidden: boolean }>(

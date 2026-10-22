@@ -79,8 +79,12 @@ export function ProjectDisplaySheet({
   state,
   onChange,
   onClose,
+  savedOrder = false,
+  onSavedOrder,
 }: {
   state: ProjectDisplay;
+  savedOrder?: boolean;
+  onSavedOrder?: () => void;
   onChange: (patch: Partial<ProjectDisplay>) => void;
   onClose: () => void;
 }) {
@@ -91,16 +95,17 @@ export function ProjectDisplaySheet({
         Display choices apply to this project on this device.
       </Text>
       {state.layout !== 'calendar' ? (
-        <Choices<IssueSort>
+        <Choices<IssueSort | 'saved'>
           label="Sort by"
-          value={state.sort}
+          value={savedOrder ? 'saved' : state.sort}
           options={[
+            ...(onSavedOrder ? [{ value: 'saved' as const, label: 'Saved view order' }] : []),
             { value: 'updated', label: 'Recently updated' },
             { value: 'due', label: 'Due date' },
             { value: 'priority', label: 'Priority' },
             { value: 'title', label: 'Title' },
           ]}
-          onChange={(sort) => onChange({ sort })}
+          onChange={(sort) => (sort === 'saved' ? onSavedOrder?.() : onChange({ sort }))}
         />
       ) : null}
       {state.layout === 'board' || state.layout === 'list' || state.layout === 'timeline' ? (
