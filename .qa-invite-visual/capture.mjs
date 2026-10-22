@@ -20,7 +20,7 @@ for(const spec of [
  page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',async route=>{
   const request=route.request();const path=new URL(request.url()).pathname;
-  if(path==='/'||path==='/app.js'||path==='/app.css'){await route.continue();return;}
+  if(path==='/'||path==='/app.js'||path==='/app.css'||(request.isNavigationRequest()&&path.startsWith('/invite/'))){await route.continue();return;}
   if(request.method()==='POST')posts.push(path);
   let data={};let status=200;
   if(path.endsWith('/auth/get-session'))data={session:{id:'fixture-session',userId:'fixture-user',token:'synthetic',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),expiresAt:new Date(Date.now()+86400000).toISOString()},user:{id:'fixture-user',name:'Ada Example',email:'ada@example.test',emailVerified:spec.scenario!=='unverified',role:'user',image:null,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}};
@@ -59,7 +59,9 @@ for(const spec of [
  if(spec.scenario==='error') {fail=false;await page.getByRole('button',{name:'Повторить попытку',exact:true}).click();await page.locator('a[href^="/invite/"]').first().waitFor();}
  if(spec.scenario==='list') {
   await page.locator(`a[href="/invite/${token}"]`).click();
-  await page.waitForFunction(t=>window.__NAV__.includes('/invite/'+t),token);
+  await page.waitForFunction(t=>window.__NAV__?.includes('/invite/'+t)||location.pathname==='/invite/'+t,token);
+  await page.goto(`http://127.0.0.1:4189/?locale=${spec.locale}&scenario=list&theme=${spec.theme??'light'}`);
+  await page.locator(`a[href="/invite/${token}"]`).waitFor();
   await page.getByRole('button',{name:spec.locale==='ru'?'Продолжить без вступления':'Continue without joining',exact:true}).click();
   await page.locator('#fallback').waitFor();
  }
