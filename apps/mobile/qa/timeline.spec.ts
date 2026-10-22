@@ -40,12 +40,15 @@ test('preserves horizontal position and keeps issue labels visible while panning
 }) => {
   const fixture = await installFixture(page);
   await page.goto('/project/alpha.PLAN?layout=timeline');
+  await page
+    .getByRole('textbox', { name: 'Search issues', exact: true })
+    .fill('Plan the mobile release');
   const pan = async () =>
     page.evaluate(() => {
       const node = [...document.querySelectorAll<HTMLElement>('*')].find(
         (element) =>
           getComputedStyle(element).overflowX === 'auto' &&
-          element.scrollWidth > element.clientWidth + 200 &&
+          element.scrollWidth > element.clientWidth + 30 &&
           !!element.querySelector('[aria-label^="Open interval for PLAN-"]'),
       );
       if (!node) throw new Error('Timeline horizontal viewport unavailable');
@@ -91,7 +94,7 @@ test('shows empty timeline state and recovers after clearing a shared search', a
   await expect(page.getByText('No matching issues', { exact: true }).first()).toBeVisible();
   await page.getByRole('textbox', { name: 'Search issues', exact: true }).fill('');
   await expect(
-    page.getByRole('button', { name: /^Open PLAN-1, Plan the mobile release,/ }),
+    page.getByRole('button', { name: /^Open PLAN-27, Synthetic task 27,/ }),
   ).toBeVisible();
   expect(fixture.failures).toEqual([]);
 });
@@ -101,6 +104,9 @@ test('keeps undated tasks visible by creation and never exposes read-only action
 }) => {
   const fixture = await installFixture(page, { readonly: true, timeline: true });
   await page.goto('/project/alpha.PLAN?layout=timeline');
+  await page
+    .getByRole('textbox', { name: 'Search issues', exact: true })
+    .fill('Plan the mobile release');
   await expect(
     page.getByRole('button', { name: /^Open PLAN-1, Plan the mobile release,/ }),
   ).toBeVisible();
@@ -121,6 +127,9 @@ test('keeps task detail and timeline through iPad split-window changes', async (
   const fixture = await installFixture(page);
   await page.setViewportSize({ width: 1194, height: 834 });
   await page.goto('/project/alpha.PLAN?layout=timeline');
+  await page
+    .getByRole('textbox', { name: 'Search issues', exact: true })
+    .fill('Plan the mobile release');
   await page.getByRole('button', { name: /^Open PLAN-1, Plan the mobile release,/ }).click();
   await expect(page.getByRole('button', { name: 'Close issue', exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('synthetic-ipad-timeline-detail.png') });
@@ -133,5 +142,47 @@ test('keeps task detail and timeline through iPad split-window changes', async (
   await expect(
     page.getByRole('button', { name: /^Open PLAN-1, Plan the mobile release,/ }),
   ).toBeVisible();
+  expect(fixture.failures).toEqual([]);
+});
+
+test('reaches older tasks by vertical scrolling and restores that position', async ({ page }) => {
+  const fixture = await installFixture(page);
+  await page.goto('/project/alpha.PLAN?layout=timeline');
+  const first = page.getByRole('button', { name: /^Open PLAN-27, Synthetic task 27,/ });
+  await expect(first).toBeVisible();
+  const savedOffset = await first.evaluate((element) => {
+    let node = element.parentElement;
+    while (
+      node &&
+      !(getComputedStyle(node).overflowY === 'auto' && node.scrollHeight > node.clientHeight + 100)
+    )
+      node = node.parentElement;
+    if (!node) throw new Error('Timeline vertical viewport unavailable');
+    node.scrollTop = 1100;
+    node.dispatchEvent(new Event('scroll'));
+    return node.scrollTop;
+  });
+  const older = page.getByRole('button', { name: /^Open PLAN-1, Plan the mobile release,/ });
+  await expect(older).toBeVisible();
+  await older.click();
+  await expect(page.getByText('formatted text', { exact: true })).toBeVisible();
+  await page.goBack();
+  await expect(older).toBeVisible();
+  await expect
+    .poll(() =>
+      older.evaluate((element) => {
+        let node = element.parentElement;
+        while (
+          node &&
+          !(
+            getComputedStyle(node).overflowY === 'auto' &&
+            node.scrollHeight > node.clientHeight + 100
+          )
+        )
+          node = node.parentElement;
+        return node?.scrollTop ?? 0;
+      }),
+    )
+    .toBeGreaterThan(savedOffset - 20);
   expect(fixture.failures).toEqual([]);
 });

@@ -25,7 +25,7 @@ import {
 } from '@/lib/timeline';
 import type { CollectionScroll } from './ProjectCollections';
 import { DateField } from './DateField';
-import { Choices, NativeSheet } from './work-controls';
+import { NativeSheet } from './work-controls';
 import { Action, EmptyState } from './primitives';
 import { useColors, useThemedStyles, type Palette } from './theme';
 
@@ -81,6 +81,8 @@ export function ProjectTimelineView({
   const axis = timelineAxis(track, offset, visibleWidth);
   const textScale = Math.max(1, fontScale);
   const rowHeight = Math.ceil(84 * textScale);
+  const groupHeight = Math.ceil(64 * textScale);
+  const hasInferredStart = rows.some((row) => row.kind === 'issue' && row.span?.inferred);
   const headerHeight = Math.ceil(64 * textScale);
   useEffect(() => {
     const x = Math.max(0, Math.min(offset, track.width - visibleWidth));
@@ -138,7 +140,10 @@ export function ProjectTimelineView({
         accessibilityRole="button"
         accessibilityLabel={label}
         onPress={onPress}
-        style={[styles.barTouch, { left: touchLeft, width: touchWidth, height: rowHeight }]}
+        style={[
+          styles.barTouch,
+          { left: touchLeft, width: touchWidth, height: aggregate ? groupHeight : rowHeight },
+        ]}
       >
         <View
           style={[
@@ -160,13 +165,13 @@ export function ProjectTimelineView({
             : [...collapsed, item.key.slice(6)],
         );
       return (
-        <View style={[styles.row, { height: rowHeight }]}>
+        <View style={[styles.row, { height: groupHeight }]}>
           <View
             style={{
               position: 'absolute',
               left: labelWidth,
               width: track.width,
-              height: rowHeight,
+              height: groupHeight,
             }}
           >
             {grid()}
@@ -181,7 +186,7 @@ export function ProjectTimelineView({
             onPress={toggle}
             style={[
               styles.label,
-              { width: labelWidth, height: rowHeight, transform: [{ translateX: offset }] },
+              { width: labelWidth, height: groupHeight, transform: [{ translateX: offset }] },
             ]}
           >
             <View style={styles.groupTitle}>
@@ -200,7 +205,9 @@ export function ProjectTimelineView({
       );
     }
     const { issue, span } = item;
-    const dates = span ? `${ordinalDate(span.start)} – ${ordinalDate(span.end)}` : 'No valid dates';
+    let dates = 'No valid dates';
+    if (span) dates = ordinalDate(span.start);
+    if (span && span.end !== span.start) dates += ` – ${ordinalDate(span.end)}`;
     const open = () => onOpen(issue.id);
     return (
       <View style={[styles.row, { height: rowHeight }, selectedId === issue.id && styles.selected]}>
@@ -303,7 +310,9 @@ export function ProjectTimelineView({
             {notice}
           </Text>
         ) : null}
-        <Text style={styles.hint}>Dashed intervals start from the task’s creation date.</Text>
+        {hasInferredStart ? (
+          <Text style={styles.hint}>Dashed intervals start from the task’s creation date.</Text>
+        ) : null}
       </View>
       <ScrollView
         ref={horizontal}
@@ -356,7 +365,7 @@ export function ProjectTimelineView({
                     numberOfLines={1}
                     style={[
                       styles.month,
-                      { left: month.left, top: 7 * textScale, maxWidth: visibleWidth },
+                      { left: month.left, top: 7 * textScale, width: month.width },
                     ]}
                   >
                     {month.label}
@@ -389,7 +398,7 @@ export function ProjectTimelineView({
                 <Text accessibilityRole="header" style={styles.group}>
                   Issue
                 </Text>
-                <Text style={styles.meta}>Start — due date</Text>
+                <Text style={styles.meta}>Interval</Text>
               </View>
             </View>
           }

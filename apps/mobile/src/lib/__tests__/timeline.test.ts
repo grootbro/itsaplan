@@ -119,6 +119,15 @@ describe('Timeline track and grouping', () => {
     expect(track.end - track.start).toBeGreaterThan(100_000);
     expect(axis.months.length).toBeLessThan(3);
   });
+  test('bounds partial month labels before the next month', () => {
+    const track = timelineTrack([issue({ startDate: '2026-11-01' })], 'quarter', 390, 160);
+    const axis = timelineAxis(track, 0, 230);
+    expect(axis.months[0].width).toBe(15);
+    for (let index = 1; index < axis.months.length; index++)
+      expect(axis.months[index - 1].left + axis.months[index - 1].width).toBeLessThanOrEqual(
+        axis.months[index].left,
+      );
+  });
   test('clamps jump targets to the loaded track without negative offsets', () => {
     const track = timelineTrack([], 'week', 390, 160, '2026-10-20');
     expect(timelineOffset(track.start - 100, track, 230)).toBe(0);

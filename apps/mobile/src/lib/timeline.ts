@@ -103,7 +103,16 @@ export function timelineAxis(track: TimelineTrack, offset: number, visibleWidth:
       line: index % (track.dayWidth >= 20 ? 1 : 7) === 0,
     });
   }
-  return { days, months };
+  return {
+    days,
+    months: months.map((month, index) => ({
+      ...month,
+      width: Math.max(
+        0,
+        Math.min(visibleWidth, (months[index + 1]?.left ?? offset + visibleWidth) - month.left),
+      ),
+    })),
+  };
 }
 export type TimelineRow =
   | {
