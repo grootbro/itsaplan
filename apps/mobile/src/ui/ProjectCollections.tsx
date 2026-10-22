@@ -23,6 +23,8 @@ export interface CollectionScroll {
   tableY: number;
   listY: number;
   calendarY: number;
+  timelineX?: number;
+  timelineY?: number;
 }
 
 interface CollectionProps {

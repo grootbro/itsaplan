@@ -1,3 +1,4 @@
+import type { TimelineScale } from './timeline';
 import {
   defaultFilters,
   type IssueFilters,
@@ -5,7 +6,7 @@ import {
   type IssueSort,
 } from './issue-list';
 
-export type ProjectLayout = 'board' | 'list' | 'table' | 'calendar';
+export type ProjectLayout = 'board' | 'list' | 'table' | 'calendar' | 'timeline';
 export type IssueProperty = 'status' | 'priority' | 'assignee' | 'dueDate' | 'type' | 'labels';
 export type ProjectScope = 'all' | 'archive' | number;
 export interface ProjectDisplay {
@@ -18,6 +19,7 @@ export interface ProjectDisplay {
   properties: IssueProperty[];
   calendarDate: 'dueDate' | 'startDate';
   weekStart: 0 | 1;
+  timelineScale: TimelineScale;
 }
 
 export function defaultProjectDisplay(): ProjectDisplay {
@@ -31,6 +33,7 @@ export function defaultProjectDisplay(): ProjectDisplay {
     properties: ['status', 'priority', 'assignee', 'dueDate'],
     calendarDate: 'dueDate',
     weekStart: 0,
+    timelineScale: 'week',
   };
 }
 
@@ -58,7 +61,7 @@ export function parseProjectDisplay(raw: string | null): ProjectDisplay {
     const choice = (value: unknown, choices: readonly string[]) =>
       typeof value === 'string' && choices.includes(value);
     return {
-      layout: choice(data.layout, ['board', 'list', 'table', 'calendar'])
+      layout: choice(data.layout, ['board', 'list', 'table', 'calendar', 'timeline'])
         ? (data.layout as ProjectLayout)
         : defaults.layout,
       scope: data.scope === 'archive' ? 'archive' : (id(data.scope) ?? 'all'),
@@ -92,6 +95,9 @@ export function parseProjectDisplay(raw: string | null): ProjectDisplay {
         : defaults.properties,
       calendarDate: data.calendarDate === 'startDate' ? 'startDate' : 'dueDate',
       weekStart: data.weekStart === 1 ? 1 : 0,
+      timelineScale: choice(data.timelineScale, ['week', 'month', 'quarter'])
+        ? (data.timelineScale as TimelineScale)
+        : 'week',
     };
   } catch {
     return defaults;

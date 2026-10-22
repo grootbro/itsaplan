@@ -9,6 +9,7 @@ export async function installFixture(
     fail?: boolean;
     delay?: number;
     planning?: boolean;
+    timeline?: boolean;
     saveFailure?: boolean;
     uploadFailure?: boolean;
   } = {},
@@ -69,7 +70,7 @@ export async function installFixture(
         labelIds: [],
         assigneeUserId: index % 2 ? null : 'fixture-user',
         priority: index % 2 ? 'low' : 'high',
-        startDate: today,
+        startDate: options.timeline && index === 0 ? null : today,
         dueDate: index % 3 ? today : null,
         estimatePoints: null,
         estimateMinutes: null,

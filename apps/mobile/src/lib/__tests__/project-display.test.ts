@@ -28,7 +28,7 @@ describe('project display state', () => {
     expect(value.weekStart).toBe(0);
   });
   test('restores every supported layout and intersecting filters', () => {
-    for (const layout of ['board', 'list', 'table', 'calendar'] as const) {
+    for (const layout of ['board', 'list', 'table', 'calendar', 'timeline'] as const) {
       const state: ProjectDisplay = {
         ...defaultProjectDisplay(),
         layout,
@@ -47,6 +47,13 @@ describe('project display state', () => {
     }
     expect(parseProjectDisplay('{"scope":"archive","properties":[]}').scope).toBe('archive');
     expect(parseProjectDisplay('{"properties":[]}').properties).toEqual([]);
+  });
+  test('restores the timeline scale and safely migrates older or corrupt values', () => {
+    expect(
+      parseProjectDisplay('{"layout":"timeline","timelineScale":"quarter"}').timelineScale,
+    ).toBe('quarter');
+    for (const raw of ['{}', '{"timelineScale":"year"}', '{"timelineScale":["week"]}'])
+      expect(parseProjectDisplay(raw).timelineScale).toBe('week');
   });
   test('does not share mutable defaults between projects', () => {
     const first = defaultProjectDisplay();

@@ -9,6 +9,7 @@ export const projectLayouts: { value: ProjectLayout; label: string }[] = [
   { value: 'list', label: 'List' },
   { value: 'table', label: 'Table' },
   { value: 'calendar', label: 'Calendar' },
+  { value: 'timeline', label: 'Timeline' },
 ];
 
 export function ProjectLayoutPicker({
@@ -102,7 +103,7 @@ export function ProjectDisplaySheet({
           onChange={(sort) => onChange({ sort })}
         />
       ) : null}
-      {state.layout === 'board' || state.layout === 'list' ? (
+      {state.layout === 'board' || state.layout === 'list' || state.layout === 'timeline' ? (
         <Choices<IssueGrouping>
           label="Group by"
           value={state.grouping}
@@ -115,7 +116,7 @@ export function ProjectDisplaySheet({
           onChange={(grouping) => onChange({ grouping })}
         />
       ) : null}
-      {state.layout === 'board' ? (
+      {state.layout === 'board' || state.layout === 'timeline' ? (
         <View
           style={{
             flexDirection: 'row',
@@ -125,9 +126,13 @@ export function ProjectDisplaySheet({
             marginBottom: 20,
           }}
         >
-          <Text style={{ flex: 1, color: colors.ink, fontSize: 16 }}>Show empty columns</Text>
+          <Text style={{ flex: 1, color: colors.ink, fontSize: 16 }}>
+            {state.layout === 'timeline' ? 'Show empty groups' : 'Show empty columns'}
+          </Text>
           <Switch
-            accessibilityLabel="Show empty columns"
+            accessibilityLabel={
+              state.layout === 'timeline' ? 'Show empty groups' : 'Show empty columns'
+            }
             value={state.showEmptyGroups}
             onValueChange={(showEmptyGroups) => onChange({ showEmptyGroups })}
           />

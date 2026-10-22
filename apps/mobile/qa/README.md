@@ -32,3 +32,11 @@ filename and MIME. This verifies metadata handling, not native transport or prov
 The separate cloud export job compiles iOS and Android JavaScript/assets through Expo Metro.
 It does not produce a signed binary or validate native module linking. Expo export options:
 https://docs.expo.dev/more/expo-cli/#exporting
+
+Timeline scenarios cover scale persistence, common search, collapsed groups, interval
+opening, sticky labels during horizontal pan, restored position after Back, read-only
+controls, empty recovery and iPad resizing. The timeline model is also tested under
+America/New_York and Asia/Tokyo in CI. Synthetic pan/scroll offsets are browser contracts.
+Native iPhone/iPad acceptance must check horizontal/vertical gesture arbitration, large
+Dynamic Type, VoiceOver interval labels, opening/editing dates and returning, huge date
+ranges and Split View changes. Date picker interaction remains a native-only check.

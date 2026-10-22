@@ -11,7 +11,7 @@ test('switches all views with shared filters and restores persisted choices', as
   await page
     .getByRole('textbox', { name: 'Search issues', exact: true })
     .fill('Plan the mobile release');
-  for (const layout of ['List', 'Table', 'Calendar', 'Board']) {
+  for (const layout of ['List', 'Table', 'Calendar', 'Timeline', 'Board']) {
     await page.getByRole('button', { name: `${layout} view`, exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'Search issues', exact: true })).toHaveValue(
       'Plan the mobile release',

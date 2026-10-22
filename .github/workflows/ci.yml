@@ -46,11 +46,20 @@ jobs:
         working-directory: apps/mobile
         run: bun run test
 
+      - name: Timeline timezone regressions
+        working-directory: apps/mobile
+        run: |
+          TZ=America/New_York bun test src/lib/__tests__/timeline.test.ts
+          TZ=Asia/Tokyo bun test src/lib/__tests__/timeline.test.ts
+
       - name: Typecheck
         run: bun run typecheck
 
       - name: Script tests
         run: bun test scripts/
+
+      - name: Mastra runtime compatibility
+        run: bun scripts/mastra-runtime-smoke.mjs
 
       # High and critical advisories fail the job; moderate and lower only print.
       - name: Audit dependencies

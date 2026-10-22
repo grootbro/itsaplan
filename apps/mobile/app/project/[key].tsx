@@ -36,6 +36,7 @@ import { Notice, SearchInput, useWorkStyles } from '@/ui/work-controls';
 import { useColors, useThemedStyles, type Palette } from '@/ui/theme';
 import { useProjectDisplay } from '@/lib/use-project-display';
 import type { ProjectLayout, ProjectScope } from '@/lib/project-display';
+import { ProjectTimelineView } from '@/ui/ProjectTimelineView';
 import {
   ProjectBoardView,
   ProjectTableView,
@@ -73,6 +74,7 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
     month: string;
     day: string;
     unscheduled: boolean;
+    timelineCollapsed?: string[];
   }>(runtimeKey);
   const scroll = useRef<CollectionScroll>(
     saved?.scroll ?? { boardX: 0, columns: {}, tableX: 0, tableY: 0, listY: 0, calendarY: 0 },
@@ -80,18 +82,21 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
   const [month, setMonth] = useState(saved?.month ?? localDay().slice(0, 7));
   const [day, setDay] = useState(saved?.day ?? localDay());
   const [unscheduled, setUnscheduled] = useState(saved?.unscheduled ?? false);
-  const runtime = useRef({ scroll: scroll.current, month, day, unscheduled });
-  runtime.current = { scroll: scroll.current, month, day, unscheduled };
-  useEffect(
-    () => () => {
-      client.setQueryData(['project-runtime', userId, key], runtime.current);
-    },
-    [client, userId, key],
+  const [timelineCollapsed, setTimelineCollapsed] = useState<string[]>(
+    saved?.timelineCollapsed ?? [],
   );
+  const runtime = useRef({ scroll: scroll.current, month, day, unscheduled, timelineCollapsed });
+  runtime.current = { scroll: scroll.current, month, day, unscheduled, timelineCollapsed };
+  useEffect(() => {
+    client.setQueryDefaults(['project-runtime', userId, key], { gcTime: Infinity });
+    return () => {
+      client.setQueryData(['project-runtime', userId, key], runtime.current);
+    };
+  }, [client, userId, key]);
   useEffect(() => {
     if (
       !display.isPending &&
-      ['board', 'list', 'table', 'calendar'].includes(layoutParam ?? '') &&
+      ['board', 'list', 'table', 'calendar', 'timeline'].includes(layoutParam ?? '') &&
       layoutParam !== layout
     )
       display.change({ layout: layoutParam as ProjectLayout });
@@ -367,6 +372,16 @@ function Project({ projectKey: key, layoutParam }: { projectKey: string; layoutP
           />
         ) : layout === 'table' ? (
           <ProjectTableView {...collection} />
+        ) : layout === 'timeline' ? (
+          <ProjectTimelineView
+            {...collection}
+            scale={display.state.timelineScale}
+            onScale={(timelineScale) => display.change({ timelineScale })}
+            grouping={grouping}
+            showEmpty={display.state.showEmptyGroups}
+            collapsed={timelineCollapsed}
+            onCollapsed={setTimelineCollapsed}
+          />
         ) : layout === 'calendar' ? (
           <ProjectCalendarView
             {...collection}
